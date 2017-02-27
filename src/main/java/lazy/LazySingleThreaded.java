@@ -4,14 +4,10 @@ import java.util.function.Supplier;
 
 class LazySingleThreaded<T> implements Lazy<T> {
     private Supplier<T> supplier;
-    private T result;
+    private T result = null;
 
-    LazySingleThreaded(final Supplier<T> supplier) {
-        this.supplier = () -> {
-            result = supplier.get();
-            this.supplier = () -> result;
-            return result;
-        };
+    LazySingleThreaded(Supplier<T> supplier) {
+        this.supplier = supplier;
     }
 
     /**
@@ -20,6 +16,10 @@ class LazySingleThreaded<T> implements Lazy<T> {
      * @return Calculation result
      */
     public T get() {
-        return supplier.get();
+        if (supplier != null) {
+            result = supplier.get();
+            supplier = null;
+        }
+        return result;
     }
 }
