@@ -9,7 +9,6 @@ public class LazyFactory {
 
     /**
      * Generates a single threaded implementations of Lazy
-     *
      * @param supplier Calculation to store
      * @param <T>      Return type
      * @return Generated single threaded implementation

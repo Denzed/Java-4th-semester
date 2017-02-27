@@ -1,19 +1,15 @@
 import lazy.Lazy;
 import lazy.LazyFactory;
-import org.junit.Assert;
-import org.junit.Test;
 
 import java.util.function.Supplier;
 
 /**
  * Test set for LazySingleThreaded
  */
-public class SingleThreadedTest extends Assert {
-    private Supplier<String> testSupplier = String::new;
+public class SingleThreadedTest extends LazyTest {
 
-    @Test
-    public void sameObjectTest() {
-        Lazy<String> stringLazy = LazyFactory.createLazySingleThreaded(testSupplier);
-        assertSame(stringLazy.get(), stringLazy.get());
+    @Override
+    protected <T> Lazy<T> applyLazyFactoryGenerator(Supplier<T> supplier) {
+        return LazyFactory.createLazySingleThreaded(supplier);
     }
 }
