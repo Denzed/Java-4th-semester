@@ -1,3 +1,5 @@
+Current branch build status: [![Build Status](https://travis-ci.org/Denzed/Java-4th-semester.svg?branch=master)](https://travis-ci.org/Denzed/Java-4th-semester)
+
 [Results](http://hwproj.me/courses/19)
 
 ### Home assignments:
