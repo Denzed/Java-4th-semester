@@ -1,9 +1,11 @@
 package lazy;
 
+import java.util.function.Supplier;
+
 /**
  * Class for generation Lazy implementations
  */
-class LazyFactory {
+public class LazyFactory {
 
     /**
      * Generates a single threaded implementations of Lazy
@@ -13,6 +15,6 @@ class LazyFactory {
      * @return Generated single threaded implementation
      */
     public static <T> Lazy<T> createLazySingleThreaded(Supplier<T> supplier) {
-        return new LazySingleThreaded(supplier);
+        return new LazySingleThreaded<>(supplier);
     }
 }

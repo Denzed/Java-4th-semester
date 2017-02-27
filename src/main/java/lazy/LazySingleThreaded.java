@@ -2,18 +2,25 @@ package lazy;
 
 import java.util.function.Supplier;
 
-class LazySingleThreaded<T> implements Lazy {
-    Supplier<T> supplier;
-    T result;
+class LazySingleThreaded<T> implements Lazy<T> {
+    private Supplier<T> supplier;
+    private T result;
 
-    LazySingleThreaded(Supplier<T> supplier) {
+    LazySingleThreaded(final Supplier<T> supplier) {
         this.supplier = () -> {
             result = supplier.get();
-            supplier = () -> result;
+            this.supplier = () -> result;
+            return result;
         };
     }
 
-    T get() {
+    /**
+     * Perform calculations once and return the result.
+     * Subsequent calls are guaranteed to return the same object.
+     *
+     * @return Calculation result
+     */
+    public T get() {
         return supplier.get();
     }
 }
