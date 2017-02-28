@@ -2,6 +2,11 @@ package lazy;
 
 import java.util.function.Supplier;
 
+/**
+ * Single threaded {@link lazy.Lazy} implementation
+ *
+ * @param <T> Return type
+ */
 class LazySingleThreaded<T> implements Lazy<T> {
     private Supplier<T> supplier;
     private T result = null;

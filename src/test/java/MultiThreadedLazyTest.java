@@ -7,16 +7,15 @@ import java.util.List;
 import java.util.function.Supplier;
 
 /**
- * Test set for LazySingleThreaded
+ * Test set for {@link lazy.LazyMultiThreaded}
  */
 public class MultiThreadedLazyTest extends LazyTest {
     /**
-     * Thread count to use in testMultiThreadedCalls.
-     * Currently set to 5: number of cores + 1 -- pretty general number
+     * Thread count to use in {@link this.testMultiThreadedCalls}
+     * Currently set to 5: number of cores + 1 -- pretty standard number
      */
     private static final int THREADS_TO_TEST = 5;
 
-    @Override
     protected <T> Lazy<T> applyLazyFactoryGenerator(Supplier<T> supplier) {
         return LazyFactory.createLazyMultiThreaded(supplier);
     }
@@ -34,7 +33,7 @@ public class MultiThreadedLazyTest extends LazyTest {
     }
 
     /**
-     * Check that Lazy is really thread-safe
+     * Check that {@link lazy.LazyMultiThreaded} is really thread-safe
      */
     @Test
     public void testMultiThreadedCalls() throws InterruptedException {

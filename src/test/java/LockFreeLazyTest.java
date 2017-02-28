@@ -4,11 +4,11 @@ import lazy.LazyFactory;
 import java.util.function.Supplier;
 
 /**
- * Test set for {@link lazy.LazySingleThreaded}
+ * Test set for {@link lazy.LazyLockFree}
  */
-public class SingleThreadedLazyTest extends LazyTest {
+public class LockFreeLazyTest extends MultiThreadedLazyTest {
 
     protected <T> Lazy<T> applyLazyFactoryGenerator(Supplier<T> supplier) {
-        return LazyFactory.createLazySingleThreaded(supplier);
+        return LazyFactory.createLazyLockFree(supplier);
     }
 }

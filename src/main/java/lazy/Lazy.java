@@ -10,5 +10,6 @@ public interface Lazy<T> {
      * Perform calculation and return its result.
      * @return Calculation result
      */
-    T get();
+    @SuppressWarnings("UnnecessaryInterfaceModifier")
+    public T get();
 }

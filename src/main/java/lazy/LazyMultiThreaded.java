@@ -2,6 +2,11 @@ package lazy;
 
 import java.util.function.Supplier;
 
+/**
+ * Thread-safe {@link lazy.Lazy} implementation
+ *
+ * @param <T> Return type
+ */
 class LazyMultiThreaded<T> implements Lazy<T> {
     private Supplier<T> supplier;
     private volatile T result = null;
@@ -17,13 +22,11 @@ class LazyMultiThreaded<T> implements Lazy<T> {
      * @return Calculation result
      */
     public T get() {
-        if (supplier != null) {
-            if (result == null) {
-                synchronized (this) {
-                    if (result == null) {
-                        result = supplier.get();
-                        supplier = null;
-                    }
+        if (supplier != null && result == null) {
+            synchronized (this) {
+                if (result == null) {
+                    result = supplier.get();
+                    supplier = null;
                 }
             }
         }
