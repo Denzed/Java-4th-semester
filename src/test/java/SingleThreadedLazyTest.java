@@ -6,7 +6,7 @@ import java.util.function.Supplier;
 /**
  * Test set for LazySingleThreaded
  */
-public class SingleThreadedTest extends LazyTest {
+public class SingleThreadedLazyTest extends LazyTest {
 
     @Override
     protected <T> Lazy<T> applyLazyFactoryGenerator(Supplier<T> supplier) {

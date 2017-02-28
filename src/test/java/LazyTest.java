@@ -7,14 +7,14 @@ import java.util.function.Supplier;
 
 @Ignore
 public abstract class LazyTest extends Assert {
-    private static final Supplier<String> SIMPLE_SUPPLIER = String::new;
-    private static final Supplier<Object> NULL_SUPPLIER = () -> null;
+    static final Supplier<String> SIMPLE_SUPPLIER = String::new;
+    static final Supplier<Object> NULL_SUPPLIER = () -> null;
     private static final Supplier<Object> NULL = null;
     private static final Supplier<Void> FAIL_ON_CALCULATION = () -> {
         fail("Calculation is not lazy! This should not happen!");
         return null;
     };
-    private static final Supplier<Integer> LONG_COMPUTATION = () -> {
+    static final Supplier<Integer> LONG_COMPUTATION = () -> {
         int res = 0;
         for (int i = 0; i < 1000000; ++i) {
             res += i;
@@ -31,12 +31,14 @@ public abstract class LazyTest extends Assert {
      */
     protected abstract <T> Lazy<T> applyLazyFactoryGenerator(Supplier<T> supplier);
 
-    private <T> void testSubsequentCall(Supplier<T> supplier) {
-        Lazy<T> lazy = applyLazyFactoryGenerator(supplier);
-        T expectedResult = supplier.get();
+    <T> void testSubsequentCall(Lazy<T> lazy, T expectedResult) {
         T actualResult = lazy.get();
         assertEquals(expectedResult, actualResult);
         assertSame(actualResult, lazy.get());
+    }
+
+    private <T> void testSubsequentCall(Supplier<T> supplier) {
+        testSubsequentCall(applyLazyFactoryGenerator(supplier), supplier.get());
     }
 
     /**
