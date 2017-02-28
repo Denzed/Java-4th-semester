@@ -1,3 +1,5 @@
+package lazy.tests;
+
 import lazy.Lazy;
 import lazy.LazyFactory;
 

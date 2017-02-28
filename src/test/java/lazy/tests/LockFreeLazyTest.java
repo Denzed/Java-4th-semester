@@ -1,3 +1,5 @@
+package lazy.tests;
+
 import lazy.Lazy;
 import lazy.LazyFactory;
 
@@ -8,6 +10,7 @@ import java.util.function.Supplier;
  */
 public class LockFreeLazyTest extends MultiThreadedLazyTest {
 
+    @Override
     protected <T> Lazy<T> applyLazyFactoryGenerator(Supplier<T> supplier) {
         return LazyFactory.createLazyLockFree(supplier);
     }

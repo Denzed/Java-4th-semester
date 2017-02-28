@@ -1,3 +1,5 @@
+package lazy.tests;
+
 import lazy.Lazy;
 import lazy.LazyFactory;
 import org.junit.Test;
@@ -12,7 +14,7 @@ import java.util.function.Supplier;
 public class MultiThreadedLazyTest extends LazyTest {
     /**
      * Thread count to use in {@link this.testMultiThreadedCalls}
-     * Currently set to 5: number of cores + 1 -- pretty standard number
+     * Currently set to 5 -- pretty standard number, which corresponds to usual number of CPU cores + 1
      */
     private static final int THREADS_TO_TEST = 5;
 

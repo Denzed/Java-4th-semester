@@ -1,3 +1,5 @@
+package lazy.tests;
+
 import lazy.Lazy;
 import org.junit.Assert;
 import org.junit.Ignore;

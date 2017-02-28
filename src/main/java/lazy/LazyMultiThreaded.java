@@ -8,7 +8,7 @@ import java.util.function.Supplier;
  * @param <T> Return type
  */
 class LazyMultiThreaded<T> implements Lazy<T> {
-    private Supplier<T> supplier;
+    private volatile Supplier<T> supplier;
     private volatile T result = null;
 
     LazyMultiThreaded(Supplier<T> supplier) {
@@ -22,9 +22,9 @@ class LazyMultiThreaded<T> implements Lazy<T> {
      * @return Calculation result
      */
     public T get() {
-        if (supplier != null && result == null) {
+        if (supplier != null) {
             synchronized (this) {
-                if (result == null) {
+                if (supplier != null) {
                     result = supplier.get();
                     supplier = null;
                 }

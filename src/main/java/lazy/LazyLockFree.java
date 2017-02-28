@@ -10,24 +10,25 @@ import java.util.function.Supplier;
  * @param <T> Return type
  */
 class LazyLockFree<T> implements Lazy<T> {
-    private Supplier<T> supplier;
-    private AtomicReference<T> result = new AtomicReference<>();
+    private AtomicReference<Supplier<T>> supplierReference;
+    private AtomicReference<T> resultReference = new AtomicReference<>();
 
     LazyLockFree(Supplier<T> supplier) {
-        this.supplier = supplier;
+        this.supplierReference = new AtomicReference<>(supplier);
     }
 
     /**
-     * Perform calculations in a thread-safe way once (and without locks) and return the result.
+     * Perform calculations in a thread-safe way without locks and return the resultReference.
      * Subsequent calls are guaranteed to return the same object.
      *
      * @return Calculation result
      */
     public T get() {
+        Supplier<T> supplier = supplierReference.get();
         if (supplier != null) {
-            result.compareAndSet(null, supplier.get());
-            supplier = null;
+            resultReference.compareAndSet(null, supplier.get());
+            supplierReference.set(null);
         }
-        return result.get();
+        return resultReference.get();
     }
 }
