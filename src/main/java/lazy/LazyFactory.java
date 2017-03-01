@@ -15,8 +15,12 @@ public final class LazyFactory {
      * @param supplier Calculation to store
      * @param <T>      Return type
      * @return the instance of single threaded implementation of {@link lazy.Lazy}
+     * @throws NullPointerException if the given supplier is null
      */
-    public static <T> Lazy<T> createLazySingleThreaded(Supplier<T> supplier) {
+    public static <T> Lazy<T> createLazySingleThreaded(Supplier<T> supplier) throws NullPointerException {
+        if (supplier == null) {
+            throw new NullPointerException("Computation may not be null!");
+        }
         return new LazySingleThreaded<>(supplier);
     }
 
@@ -26,8 +30,12 @@ public final class LazyFactory {
      * @param supplier Calculation to store
      * @param <T>      Return type
      * @return the instance of thread-safe implementation of {@link lazy.Lazy}
+     * @throws NullPointerException if the given supplier is null
      */
-    public static <T> Lazy<T> createLazyMultiThreaded(Supplier<T> supplier) {
+    public static <T> Lazy<T> createLazyMultiThreaded(Supplier<T> supplier) throws NullPointerException {
+        if (supplier == null) {
+            throw new NullPointerException("Computation may not be null!");
+        }
         return new LazyMultiThreaded<>(supplier);
     }
 
@@ -36,9 +44,13 @@ public final class LazyFactory {
      *
      * @param supplier Calculation to store
      * @param <T>      Return type
-     * @return the instance of thread-safe lock-free implementation of  {@link lazy.Lazy}
+     * @return the instance of thread-safe lock-free implementation of {@link lazy.Lazy}
+     * @throws NullPointerException if the given supplier is null
      */
-    public static <T> Lazy<T> createLazyLockFree(Supplier<T> supplier) {
+    public static <T> Lazy<T> createLazyLockFree(Supplier<T> supplier) throws NullPointerException {
+        if (supplier == null) {
+            throw new NullPointerException("Computation may not be null!");
+        }
         return new LazyLockFree<>(supplier);
     }
 }

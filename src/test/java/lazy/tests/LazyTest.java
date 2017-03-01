@@ -59,9 +59,10 @@ public abstract class LazyTest {
     }
 
     /**
-     * Check that {@link lazy.Lazy} on null computation works as expected
+     * Check that {@link lazy.Lazy} on null computation works as expected -- we should not accept null computation and
+     * thus throw NullPointerException
      */
-    @Test
+    @Test(expected = NullPointerException.class)
     public void testNullComputation() {
         Assert.assertNull(applyLazyFactoryGenerator(NULL).get());
     }
