@@ -2,6 +2,9 @@ package mygit.objects;
 
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Class which stores information about repository branches
+ */
 public class Branch {
     /**
      * String constant used to distinguish Branches from other MyGit objects
@@ -38,9 +41,6 @@ public class Branch {
             return true;
         }
         if (object == null || getClass() != object.getClass()) {
-            return false;
-        }
-        if (!super.equals(object)) {
             return false;
         }
         Branch branch = (Branch) object;

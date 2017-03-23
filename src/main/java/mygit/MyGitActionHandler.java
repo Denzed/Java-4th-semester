@@ -1,9 +1,6 @@
 package mygit;
 
-import mygit.exceptions.MyGitDoubleInitializationException;
-import mygit.exceptions.MyGitIllegalArgumentException;
-import mygit.exceptions.MyGitIllegalStateException;
-import mygit.exceptions.MyGitMissingPrerequisitiesException;
+import mygit.exceptions.*;
 import mygit.objects.*;
 import mygit.utils.MyGitSHA1Hasher;
 import org.jetbrains.annotations.NotNull;
@@ -107,17 +104,21 @@ public class MyGitActionHandler {
      * <p>
      * As it replaces any differing files the index must be empty at the moment of the checkout
      * @param revision revision to checkout onto
-     * @throws MyGitMissingPrerequisitiesException in case the index is not empty
+     * @throws MyGitMissingPrerequisitesException in case the index is not empty
      * @throws IOException if filesystem I/O error occurs
      * @throws MyGitIllegalStateException if an internal error occurs
      * @throws MyGitIllegalArgumentException if such revision does not exist
      */
     public void checkout(@NotNull String revision)
-            throws MyGitMissingPrerequisitiesException, IOException,
+            throws MyGitMissingPrerequisitesException, IOException,
                 MyGitIllegalStateException, MyGitIllegalArgumentException {
         if (!internalUpdater.readIndexPaths().isEmpty()) {
-            throw new MyGitMissingPrerequisitiesException("Unstaged changes detected. Checkout cancelled");
+            throw new MyGitMissingPrerequisitesException("Unstaged changes detected. Checkout cancelled");
         }
+        final HeadStatus headStatus = getHeadStatus();
+        final String headCommitHash = headStatus.getType().equals(Branch.TYPE)
+                ? internalUpdater.getBranchCommitHash(headStatus.getName())
+                : headStatus.getName();
         String newCommitHash, newHeadType;
         if (listBranches().contains(new Branch(revision))) {
             newCommitHash = internalUpdater.getBranchCommitHash(revision);
@@ -129,7 +130,7 @@ public class MyGitActionHandler {
             newCommitHash = revision;
             newHeadType = Commit.TYPE;
         }
-        internalUpdater.moveFromCommitToCommit(internalUpdater.getHeadCommit(),
+        internalUpdater.moveFromCommitToCommit(internalUpdater.readCommit(headCommitHash),
                 internalUpdater.readCommit(newCommitHash));
         internalUpdater.setHeadStatus(new HeadStatus(newHeadType, revision));
     }
@@ -137,17 +138,21 @@ public class MyGitActionHandler {
     /**
      * Commit all indexed changes and move HEAD to the generated Commit
      * @param message commit message
+     * @throws MyGitEmptyCommitException if there are no changes to commit
      * @throws MyGitIllegalStateException if an internal error occurs
      * @throws IOException if a filesystem I/O error occurs
      * @throws MyGitIllegalArgumentException if the commit message is empty
      */
     public void commit(@NotNull String message)
-            throws MyGitIllegalStateException, IOException, MyGitIllegalArgumentException {
+            throws MyGitIllegalStateException, IOException, MyGitIllegalArgumentException, MyGitEmptyCommitException {
         if (message.isEmpty()) {
             throw new MyGitIllegalArgumentException("Commit message should not be empty");
         }
         final Tree headTree = internalUpdater.getHeadTree();
         final Set<Path> indexedPaths = internalUpdater.readIndexPaths();
+        if (indexedPaths.isEmpty()) {
+            throw new MyGitEmptyCommitException();
+        }
         final String newTreeHash = rebuildTree(headTree, myGitRepositoryRootDirectory, indexedPaths);
         final Commit commit = new Commit(newTreeHash,
                                          message,
@@ -218,21 +223,21 @@ public class MyGitActionHandler {
      * Conflicts are resolved in such a way that the most recently modified file is chosen.
      * HEAD should not be in a detached state and no staged changes may exist
      * @param branchName branch to be merged into HEAD
-     * @throws MyGitMissingPrerequisitiesException either if HEAD is detached or there are staged changes
+     * @throws MyGitMissingPrerequisitesException either if HEAD is detached or there are staged changes
      * @throws MyGitIllegalStateException if an internal error occurs
      * @throws IOException if filesystem I/O error occurs
      * @throws MyGitIllegalArgumentException either if one tries to merge HEAD with itself or the specified branch
      * does not exist
      */
     public void merge(@NotNull String branchName)
-            throws MyGitMissingPrerequisitiesException, IOException,
+            throws MyGitMissingPrerequisitesException, IOException,
                 MyGitIllegalStateException, MyGitIllegalArgumentException {
         if (!internalUpdater.readIndexPaths().isEmpty()) {
-            throw new MyGitMissingPrerequisitiesException("Unstaged changes detected. Merge cancelled");
+            throw new MyGitMissingPrerequisitesException("Unstaged changes detected. Merge cancelled");
         }
         final HeadStatus headStatus = getHeadStatus();
         if (headStatus.getType().equals(Commit.TYPE)) {
-            throw new MyGitMissingPrerequisitiesException("Cannot merge with detached HEAD");
+            throw new MyGitMissingPrerequisitesException("Cannot merge with detached HEAD");
         }
         if (headStatus.getName().equals(branchName)) {
             throw new MyGitIllegalArgumentException("Cannot merge branch with itself");
@@ -421,7 +426,7 @@ public class MyGitActionHandler {
 
     /**
      * Gets the list of Branches in MyGit repository
-     * @return {@link List<Branch>} of Branches in MyGit repository
+     * @return {@link List} of Branches in MyGit repository
      * @throws MyGitIllegalStateException if an internal error occurs
      * @throws IOException if filesystem I/O error occurs
      */
@@ -431,7 +436,7 @@ public class MyGitActionHandler {
 
     private boolean isMyGitInternalPath(@Nullable Path path) {
         while (path != null) {
-            if (path.endsWith(".mygit")) {
+            if (Files.exists(Paths.get(path.toString(), ".mygit"))) {
                 return true;
             }
             path = path.getParent();
