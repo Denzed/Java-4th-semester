@@ -3,7 +3,7 @@ package mygit.objects;
 /**
  * Enum for {@link FileDifference} type of difference between a file in repository HEAD and in filesystem
  */
-public enum FileDifferenceType {
+enum FileDifferenceType {
     /**
      * File has been added
      */

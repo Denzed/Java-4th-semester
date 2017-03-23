@@ -14,6 +14,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -23,8 +25,6 @@ import java.util.stream.Collectors;
 public class MyGitActionHandler {
     @NotNull
     private final Path myGitRepositoryRootDirectory;
-    @NotNull
-    private final Path currentDirectory;
     @NotNull
     private final InternalUpdater internalUpdater;
 
@@ -56,7 +56,6 @@ public class MyGitActionHandler {
         if (!currentDirectory.isAbsolute()) {
             throw new MyGitIllegalArgumentException("Path given as a parameter should be absolute");
         }
-        this.currentDirectory = currentDirectory;
         Path tmpPath = currentDirectory;
         while (tmpPath != null && !Files.exists(Paths.get(tmpPath.toString(), ".mygit"))) {
             tmpPath = tmpPath.getParent();
@@ -69,7 +68,42 @@ public class MyGitActionHandler {
     }
 
     /**
-     * Checks out a branch given by its name or a commit given by its hash and sets it a new HEAD.
+     * Adds paths to the current index.
+     *
+     * @param arguments list of paths to add to the index
+     * @throws MyGitIllegalArgumentException if the array contains invalid paths
+     * @throws IOException if filesystem I/O error occurs
+     * @throws MyGitIllegalStateException if an internal error occurs
+     */
+    public void addPathsToIndex(@NotNull String[] arguments)
+            throws MyGitIllegalArgumentException, MyGitIllegalStateException, IOException {
+        performUpdateToIndex(arguments, paths -> paths::add);
+    }
+
+    /**
+     * Removes paths from the current index.
+     *
+     * @param arguments list of paths to remove from the index
+     * @throws MyGitIllegalArgumentException if the array contains invalid paths
+     * @throws IOException if filesystem I/O error occurs
+     * @throws MyGitIllegalStateException if an internal error occurs
+     */
+    public void resetIndexPaths(@NotNull String[] arguments)
+            throws MyGitIllegalStateException, MyGitIllegalArgumentException, IOException {
+        performUpdateToIndex(arguments, paths -> paths::remove);
+    }
+
+    /**
+     * Removes all paths from the current index
+     * @throws IOException if filesystem I/O error occurs
+     * @throws MyGitIllegalStateException if an internal error occurs
+     */
+    public void resetAllIndexPaths() throws IOException, MyGitIllegalStateException {
+        internalUpdater.writeIndexPaths(new HashSet<>());
+    }
+
+    /**
+     * Checks out a branch given by its name or a commit given by its hash and sets it a new HEAD
      * <p>
      * As it replaces any differing files the index must be empty at the moment of the checkout
      * @param revision revision to checkout onto
@@ -217,6 +251,26 @@ public class MyGitActionHandler {
         checkout(headStatus.getName());
     }
 
+    private void performUpdateToIndex(@NotNull String[] arguments,
+                                      @NotNull Function<Set<Path>, Consumer<Path>> action)
+            throws MyGitIllegalStateException, MyGitIllegalArgumentException, IOException {
+        final List<Path> argsPaths = new ArrayList<>();
+        for (String argument : arguments) {
+            Path path = Paths.get(argument);
+            if (!isMyGitInternalPath(path)) {
+                throw new MyGitIllegalArgumentException("Path '" + argument + "' is located outside MyGit repository");
+            }
+            if (!Files.exists(path)) {
+                throw new MyGitIllegalArgumentException("Path '" + argument + "' does not exist");
+            }
+            argsPaths.add(path);
+        }
+        final Set<Path> indexedPaths = internalUpdater.readIndexPaths();
+        final Consumer<Path> indexUpdater = action.apply(indexedPaths);
+        argsPaths.forEach(indexUpdater);
+        internalUpdater.writeIndexPaths(indexedPaths);
+    }
+
     @NotNull
     private String mergeTrees(@NotNull Tree baseTree, @NotNull Tree otherTree)
             throws MyGitIllegalStateException, IOException {
@@ -351,7 +405,13 @@ public class MyGitActionHandler {
         }
     }
 
-    private HeadStatus getHeadStatus() throws IOException, MyGitIllegalStateException {
+    /**
+     * Gets head status
+     * @return head status as an instance of {@link HeadStatus}
+     * @throws MyGitIllegalStateException if an internal error occurs
+     * @throws IOException if filesystem I/O error occurs
+     */
+    public HeadStatus getHeadStatus() throws IOException, MyGitIllegalStateException {
         return internalUpdater.getHeadStatus();
     }
 
@@ -359,7 +419,13 @@ public class MyGitActionHandler {
         return internalUpdater.listCommitHashes();
     }
 
-    private List<Branch> listBranches() throws MyGitIllegalStateException, IOException {
+    /**
+     * Gets the list of Branches in MyGit repository
+     * @return {@link List<Branch>} of Branches in MyGit repository
+     * @throws MyGitIllegalStateException if an internal error occurs
+     * @throws IOException if filesystem I/O error occurs
+     */
+    public List<Branch> listBranches() throws MyGitIllegalStateException, IOException {
         return internalUpdater.listBranches();
     }
 

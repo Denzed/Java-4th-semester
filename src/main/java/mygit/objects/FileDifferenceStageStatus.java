@@ -3,7 +3,7 @@ package mygit.objects;
 /**
  * Enum for {@link FileDifference} staging status of a file
  */
-public enum FileDifferenceStageStatus {
+enum FileDifferenceStageStatus {
     /**
      * Next commit will replace file copy in HEAD with its current contents
      */

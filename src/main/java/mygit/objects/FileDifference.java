@@ -7,7 +7,7 @@ import java.nio.file.Path;
 /**
  * Base class for file difference between repository HEAD and filesystem
  */
-public class FileDifference {
+class FileDifference {
     @NotNull
     private Path path;
     @NotNull

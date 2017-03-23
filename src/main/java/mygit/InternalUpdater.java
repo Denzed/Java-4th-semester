@@ -18,7 +18,7 @@ import java.util.stream.Collectors;
 /**
  * Class which purpose is to maintain internal repository representation in the filesystem
  */
-public class InternalUpdater {
+class InternalUpdater {
     @NotNull
     private final Path myGitRootDirectory;
     @NotNull
