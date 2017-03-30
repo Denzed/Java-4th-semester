@@ -59,8 +59,16 @@ public class SingleThreadedHasherTest {
     }
 
     @Test
-    public void subsequentCallTest() throws Exception {
-        Assert.assertEquals(SingleThreadedMD5Hasher.getHashFromPath(folderPath),
+    public void subsequentCallFileTest() throws Exception {
+        Assert.assertArrayEquals(
+                SingleThreadedMD5Hasher.getHashFromPath(FILE_PATHS.get(0)),
+                SingleThreadedMD5Hasher.getHashFromPath(FILE_PATHS.get(0)));
+    }
+
+    @Test
+    public void subsequentCallDirectoryTest() throws Exception {
+        Assert.assertArrayEquals(
+                SingleThreadedMD5Hasher.getHashFromPath(folderPath),
                 SingleThreadedMD5Hasher.getHashFromPath(folderPath));
     }
 }
