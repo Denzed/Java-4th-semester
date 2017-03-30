@@ -1,3 +1,5 @@
+package hashers;
+
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
@@ -22,7 +24,7 @@ public class SingleThreadedMD5Hasher {
      *
      * @param path path to file to hash
      * @return its hash
-     * @throws IOException if an exception occurs in the hasher
+     * @throws IOException if an exception occurs when working with the filesystem
      */
     public static @NotNull byte[] getHashFromPath(@NotNull Path path) throws IOException {
         File file = path.toFile();
@@ -39,9 +41,11 @@ public class SingleThreadedMD5Hasher {
         Vector<InputStream> inputStreams = new Vector<>();
         inputStreams.add(new ByteArrayInputStream(directory.getName().getBytes()));
         File[] files = directory.listFiles();
-        Arrays.sort(files, Comparator.comparing(File::getName));
-        for (File file : files) {
-            inputStreams.add(new ByteArrayInputStream(getHashFromFile(file)));
+        if (files != null) {
+            Arrays.sort(files, Comparator.comparing(File::getName));
+            for (File file : files) {
+                inputStreams.add(new ByteArrayInputStream(getHashFromFile(file)));
+            }
         }
         MessageDigest messageDigest = getMessageDigest();
         try (DigestInputStream digestInputStream = new DigestInputStream(

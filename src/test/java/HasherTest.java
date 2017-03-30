@@ -5,6 +5,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -14,9 +15,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Test set for single threaded MD5 hasher
+ * Test set for MD5 hasher
  */
-public class SingleThreadedHasherTest {
+abstract public class HasherTest {
     @Rule
     public final TemporaryFolder temporaryFolder = new TemporaryFolder();
 
@@ -24,9 +25,8 @@ public class SingleThreadedHasherTest {
     private final List<String> FILES = Arrays.asList("file1", "file2", "file3");
     private List<Path> FILE_PATHS;
     private final List<String> FILE_CONTENTS = Arrays.asList("file1_contents", "file2_contents", "file3_contents");
-    private final List<String> NEW_FILE_CONTENTS =
-            Arrays.asList("new_file1_contents", "new_file2_contents", "new_file3_contents");
-    private final List<String> BRANCHES = Arrays.asList("branch1", "branch2", "branch3");
+
+    abstract byte[] getHashFromPath(Path path) throws IOException;
 
     @Before
     public void initialise() throws Exception {
@@ -46,7 +46,7 @@ public class SingleThreadedHasherTest {
     public void noFileTest() throws Exception {
         Path nonExistant = Paths.get(folderPath.getParent().toString(),
                 folderPath.getFileName() + "11");
-        SingleThreadedMD5Hasher.getHashFromPath(nonExistant);
+        getHashFromPath(nonExistant);
     }
 
     @Test
@@ -54,21 +54,21 @@ public class SingleThreadedHasherTest {
         for (int i = 0; i < FILES.size(); i++) {
             Assert.assertArrayEquals(
                     MessageDigest.getInstance("MD5").digest(FILE_CONTENTS.get(i).getBytes()),
-                    SingleThreadedMD5Hasher.getHashFromPath(FILE_PATHS.get(i)));
+                    getHashFromPath(FILE_PATHS.get(i)));
         }
     }
 
     @Test
     public void subsequentCallFileTest() throws Exception {
         Assert.assertArrayEquals(
-                SingleThreadedMD5Hasher.getHashFromPath(FILE_PATHS.get(0)),
-                SingleThreadedMD5Hasher.getHashFromPath(FILE_PATHS.get(0)));
+                getHashFromPath(FILE_PATHS.get(0)),
+                getHashFromPath(FILE_PATHS.get(0)));
     }
 
     @Test
     public void subsequentCallDirectoryTest() throws Exception {
         Assert.assertArrayEquals(
-                SingleThreadedMD5Hasher.getHashFromPath(folderPath),
-                SingleThreadedMD5Hasher.getHashFromPath(folderPath));
+                getHashFromPath(folderPath),
+                getHashFromPath(folderPath));
     }
 }

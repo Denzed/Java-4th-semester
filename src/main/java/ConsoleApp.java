@@ -1,3 +1,5 @@
+import hashers.ForkJoinMD5Hasher;
+import hashers.SingleThreadedMD5Hasher;
 import org.jetbrains.annotations.NotNull;
 
 import java.nio.file.Path;
@@ -22,9 +24,15 @@ public class ConsoleApp {
             System.out.print("Single threaded hash: ");
             long startTime = System.currentTimeMillis();
             System.out.write(SingleThreadedMD5Hasher.getHashFromPath(path));
-            long singleTime = System.currentTimeMillis();
+            long endTime = System.currentTimeMillis();
             System.out.println();
-            System.out.println("Computed in " + (singleTime - startTime) + " milliseconds");
+            System.out.println("Computed in " + (endTime - startTime) + " milliseconds");
+            System.out.print("Multi threaded hash: ");
+            startTime = System.currentTimeMillis();
+            System.out.write(ForkJoinMD5Hasher.getHashFromPath(path));
+            endTime = System.currentTimeMillis();
+            System.out.println();
+            System.out.println("Computed in " + (endTime - startTime) + " milliseconds");
         } catch (Exception e) {
             System.out.println("Unsuccessful operation: " + e.getMessage());
         }
