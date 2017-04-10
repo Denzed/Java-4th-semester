@@ -183,6 +183,17 @@ class InternalUpdater {
     }
 
     @NotNull
+    String computeFileHashFromPath(@NotNull Path path)
+            throws IOException, MyGitIllegalStateException {
+        if (!path.toFile().isFile()) {
+            throw new MyGitIllegalStateException("Given path is not a file");
+        }
+        final byte[] data = Files.readAllBytes(path);
+        final Blob blob = new Blob(data);
+        return getObjectHash(blob);
+    }
+
+    @NotNull
     String writeBlobFromPath(@NotNull Path path)
             throws MyGitIllegalStateException, IOException {
         final byte[] data = Files.readAllBytes(path);
@@ -313,6 +324,7 @@ class InternalUpdater {
     }
 
     private static void deleteDirectoryRecursively(@NotNull Path directoryPath) throws IOException {
+        //noinspection ResultOfMethodCallIgnored
         Files.walk(directoryPath)
                 .sorted(Comparator.reverseOrder())
                 .map(Path::toFile)

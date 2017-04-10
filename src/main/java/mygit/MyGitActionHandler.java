@@ -256,6 +256,54 @@ public class MyGitActionHandler {
         checkout(headStatus.getName());
     }
 
+    @NotNull
+    public Map<Path, FileStatus> status()
+            throws MyGitIllegalStateException, IOException {
+        Map<Path, FileStatus> result = new HashMap<>();
+        buildStagingStatus(internalUpdater.getHeadTree(),
+                myGitRepositoryRootDirectory,
+                result);
+        return result;
+    }
+
+    private void buildStagingStatus(@Nullable Tree currentTree,
+                                    @NotNull Path pathPrefix,
+                                    @NotNull Map<Path, FileStatus> result)
+            throws IOException, MyGitIllegalStateException {
+        final List<Path> unstagedPaths = Files.list(pathPrefix)
+                .filter(path -> !isMyGitInternalPath(path))
+                .collect(Collectors.toList());
+        final List<Tree.TreeEdge> treeEdges = currentTree == null
+                ? new ArrayList<>()
+                : currentTree.getEdgesToChildren();
+        for (Tree.TreeEdge childEdge : treeEdges) {
+            final Path childPath = Paths.get(pathPrefix.toString(), childEdge.getName());
+            unstagedPaths.remove(childPath);
+            if (childEdge.getType().equals(Tree.TYPE)) {
+                buildStagingStatus(internalUpdater.readTree(childEdge.getHash()),
+                        childPath,
+                        result);
+            } else {
+                result.put(childPath,
+                        buildFileStagingStatus(childPath, childEdge.getHash()));
+            }
+        }
+        unstagedPaths.stream()
+                .filter(path -> path.toFile().isFile())
+                .forEach(path -> result.put(path, FileStatus.UNSTAGED));
+    }
+
+    private FileStatus buildFileStagingStatus(@NotNull Path filePath,
+                                              @NotNull String stagedHash)
+            throws IOException, MyGitIllegalStateException {
+        if (filePath.toFile().exists() && filePath.toFile().isFile()) {
+            return (stagedHash.equals(internalUpdater.computeFileHashFromPath(filePath))
+                    ? FileStatus.STAGED
+                    : FileStatus.MODIFIED);
+        }
+        return FileStatus.DELETED;
+    }
+
     private void performUpdateToIndex(@NotNull String[] arguments,
                                       @NotNull Function<Set<Path>, Consumer<Path>> action)
             throws MyGitIllegalStateException, MyGitIllegalArgumentException, IOException {

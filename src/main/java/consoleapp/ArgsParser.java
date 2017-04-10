@@ -2,8 +2,10 @@ package consoleapp;
 
 import mygit.MyGitActionHandler;
 import mygit.exceptions.MyGitException;
+import mygit.exceptions.MyGitIllegalStateException;
 import mygit.objects.Branch;
 import mygit.objects.CommitInfo;
+import mygit.objects.FileStatus;
 import mygit.objects.HeadStatus;
 import org.jetbrains.annotations.NotNull;
 
@@ -11,6 +13,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Map;
 
 /**
  * Parses command line arguments and invokes corresponding methods
@@ -19,6 +22,7 @@ public class ArgsParser {
     private static final String INIT = "init";
     private static final String ADD = "add";
     private static final String LOG = "log";
+    private static final String STATUS = "status";
     private static final String BRANCH = "branch";
     private static final String COMMIT = "commit";
     private static final String CHECKOUT = "checkout";
@@ -45,7 +49,7 @@ public class ArgsParser {
 
     void parse(@NotNull String[] args) throws InvalidCommandException, MyGitException, IOException {
         if (args.length == 0) {
-            throw new InvalidCommandException("Enter arguments");
+            throw new InvalidCommandException("Please enter a command");
         }
         if (args[0].equals(HELP)) {
             showHelp();
@@ -70,6 +74,8 @@ public class ArgsParser {
             case LOG:
                 handleLogCommand(actionHandler);
                 break;
+            case STATUS:
+                handleStatusCommand(actionHandler);
             case BRANCH:
                 handleBranchCommand(actionHandler, argsWithoutCommand(args));
                 break;
@@ -85,12 +91,29 @@ public class ArgsParser {
         }
     }
 
+    private void handleStatusCommand(@NotNull MyGitActionHandler actionHandler)
+            throws MyGitIllegalStateException, IOException {
+        HeadStatus headStatus = actionHandler.getHeadStatus();
+        if (headStatus.getType().equals(Branch.TYPE)) {
+            printStream.println("On branch " + headStatus.getName());
+        } else {
+            printStream.println("On commit " + headStatus.getName());
+        }
+        Map<Path, FileStatus> status = actionHandler.status();
+        for (Path path : status.keySet()) {
+            printStream.println(
+                    status.get(path).getState() +
+                            ": " +
+                            path.toString());
+        }
+    }
+
     private void handleResetCommand(@NotNull MyGitActionHandler actionHandler, @NotNull String[] args)
             throws MyGitException, IOException, InvalidCommandException {
         if (args.length > 0) {
             actionHandler.resetIndexPaths(args);
         } else {
-            throw new InvalidCommandException(RESET + ": at least one file to reset required");
+            throw new InvalidCommandException(RESET + ": at least one file to reset must be specified");
         }
     }
 
@@ -99,7 +122,7 @@ public class ArgsParser {
         if (args.length > 0) {
             actionHandler.addPathsToIndex(args);
         } else {
-            throw new InvalidCommandException(ADD + ": at least one file to add required");
+            throw new InvalidCommandException(ADD + ": at least one file to add must be specified");
         }
     }
 
@@ -108,7 +131,7 @@ public class ArgsParser {
         if (args.length > 0) {
             actionHandler.merge(args[0]);
         } else {
-            throw new InvalidCommandException(MERGE + ": branch name to merge with required");
+            throw new InvalidCommandException(MERGE + ": branch name to merge with must be specified");
         }
     }
 
@@ -117,7 +140,7 @@ public class ArgsParser {
         if (args.length > 0) {
             actionHandler.checkout(args[0]);
         } else {
-            throw new InvalidCommandException(CHECKOUT + ": branch name required");
+            throw new InvalidCommandException(CHECKOUT + ": branch name must be specified");
         }
     }
 
@@ -126,7 +149,7 @@ public class ArgsParser {
         if (args.length > 0) {
             actionHandler.commit(args[0]);
         } else {
-            throw new InvalidCommandException(COMMIT + ": revision name required");
+            throw new InvalidCommandException(COMMIT + ": revision name must be specified");
         }
     }
 
@@ -192,6 +215,9 @@ public class ArgsParser {
             "  " + CHECKOUT + " <branch> | <revision>\n" +
             "  " + COMMIT + " <message>\n" +
             "  " + MERGE + " <branch>\n" +
+                    "\n" +
+                    "show the working tree status:\n" +
+                    "  " + STATUS + "\n" +
             "\n" +
             "'mygit help' list all available commands.");
     }
