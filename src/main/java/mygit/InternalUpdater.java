@@ -323,7 +323,7 @@ class InternalUpdater {
         return headFile;
     }
 
-    private static void deleteDirectoryRecursively(@NotNull Path directoryPath) throws IOException {
+    static void deleteDirectoryRecursively(@NotNull Path directoryPath) throws IOException {
         //noinspection ResultOfMethodCallIgnored
         Files.walk(directoryPath)
                 .sorted(Comparator.reverseOrder())

@@ -130,7 +130,8 @@ public class MyGitActionHandler {
             newCommitHash = revision;
             newHeadType = Commit.TYPE;
         }
-        internalUpdater.moveFromCommitToCommit(internalUpdater.readCommit(headCommitHash),
+        internalUpdater.moveFromCommitToCommit(
+                internalUpdater.readCommit(headCommitHash),
                 internalUpdater.readCommit(newCommitHash));
         internalUpdater.setHeadStatus(new HeadStatus(newHeadType, revision));
     }
@@ -256,6 +257,13 @@ public class MyGitActionHandler {
         checkout(headStatus.getName());
     }
 
+    /**
+     * Show the working tree status
+     *
+     * @return Map of file path to file change statuses
+     * @throws MyGitIllegalStateException if an internal error occurs
+     * @throws IOException                if filesystem I/O error occurs
+     */
     @NotNull
     public Map<Path, FileStatus> status()
             throws MyGitIllegalStateException, IOException {
@@ -264,6 +272,30 @@ public class MyGitActionHandler {
                 myGitRepositoryRootDirectory,
                 result);
         return result;
+    }
+
+    public void rm(@NotNull List<Path> paths)
+            throws IOException, MyGitIllegalArgumentException {
+        String notFound = paths
+                .stream()
+                .filter(Files::notExists)
+                .map(Path::toString)
+                .collect(String::new,
+                        (a, b) -> a += "\n" + b,
+                        (a, b) -> a += "\n" + b);
+        if (!notFound.isEmpty()) {
+            throw new MyGitIllegalArgumentException(
+                    "Following paths did not match any files:\n" +
+                            notFound +
+                            "\nOperation aborted.");
+        }
+        for (Path path : paths) {
+            if (Files.isRegularFile(path)) {
+                Files.delete(path);
+            } else {
+                InternalUpdater.deleteDirectoryRecursively(path);
+            }
+        }
     }
 
     private void buildStagingStatus(@Nullable Tree currentTree,
@@ -292,6 +324,8 @@ public class MyGitActionHandler {
                 .filter(path -> path.toFile().isFile())
                 .forEach(path -> result.put(path, FileStatus.UNSTAGED));
     }
+
+
 
     private FileStatus buildFileStagingStatus(@NotNull Path filePath,
                                               @NotNull String stagedHash)

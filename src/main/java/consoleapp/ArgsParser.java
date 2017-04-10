@@ -12,8 +12,10 @@ import org.jetbrains.annotations.NotNull;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Parses command line arguments and invokes corresponding methods
@@ -21,6 +23,7 @@ import java.util.Map;
 public class ArgsParser {
     private static final String INIT = "init";
     private static final String ADD = "add";
+    private static final String RM = "rm";
     private static final String LOG = "log";
     private static final String STATUS = "status";
     private static final String BRANCH = "branch";
@@ -65,6 +68,8 @@ public class ArgsParser {
             case ADD:
                 handleAddCommand(actionHandler, argsWithoutCommand(args));
                 break;
+            case RM:
+                handleRmCommand(actionHandler, argsWithoutCommand(args));
             case RESET:
                 handleResetCommand(actionHandler, argsWithoutCommand(args));
                 break;
@@ -123,6 +128,18 @@ public class ArgsParser {
             actionHandler.addPathsToIndex(args);
         } else {
             throw new InvalidCommandException(ADD + ": at least one file to add must be specified");
+        }
+    }
+
+    private void handleRmCommand(@NotNull MyGitActionHandler actionHandler, @NotNull String[] args)
+            throws InvalidCommandException, MyGitException, IOException {
+        if (args.length > 0) {
+            actionHandler.rm(Arrays
+                    .stream(args)
+                    .map(Paths::get)
+                    .collect(Collectors.toList()));
+        } else {
+            throw new InvalidCommandException(ADD + ": at least one file to remove must be specified");
         }
     }
 
