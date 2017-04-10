@@ -33,6 +33,7 @@ public class ArgsParser {
     private static final String HELP = "help";
     private static final String RESET = "reset";
     private static final String RESET_ALL = "resetall";
+    private static final String CLEAN = "clean";
 
     @NotNull
     private final PrintStream printStream;
@@ -70,17 +71,22 @@ public class ArgsParser {
                 break;
             case RM:
                 handleRmCommand(actionHandler, argsWithoutCommand(args));
+                break;
             case RESET:
                 handleResetCommand(actionHandler, argsWithoutCommand(args));
                 break;
             case RESET_ALL:
                 actionHandler.resetAllIndexPaths();
                 break;
+            case CLEAN:
+                actionHandler.clean();
+                break;
             case LOG:
                 handleLogCommand(actionHandler);
                 break;
             case STATUS:
                 handleStatusCommand(actionHandler);
+                break;
             case BRANCH:
                 handleBranchCommand(actionHandler, argsWithoutCommand(args));
                 break;
@@ -223,6 +229,7 @@ public class ArgsParser {
             "  " + ADD + " [<files>]\n" +
             "  " + RESET + " [<files>]\n" +
             "  " + RESET_ALL + "\n" +
+                    "  " + RM + "\n" +
             "\n" +
             "examine the commit history:\n" +
             "  " + LOG + "\n" +
@@ -235,6 +242,9 @@ public class ArgsParser {
                     "\n" +
                     "show the working tree status:\n" +
                     "  " + STATUS + "\n" +
+                    "\n" +
+                    "remove unstaged files:\n" +
+                    "  " + CLEAN + "\n" +
             "\n" +
             "'mygit help' list all available commands.");
     }

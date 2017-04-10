@@ -274,6 +274,13 @@ public class MyGitActionHandler {
         return result;
     }
 
+    /**
+     * Remove files from the working tree and from the index
+     *
+     * @param paths paths to files to remove
+     * @throws IOException                   if filesystem I/O error occurs
+     * @throws MyGitIllegalArgumentException if some files are missing
+     */
     public void rm(@NotNull List<Path> paths)
             throws IOException, MyGitIllegalArgumentException {
         String notFound = paths
@@ -294,6 +301,43 @@ public class MyGitActionHandler {
                 Files.delete(path);
             } else {
                 InternalUpdater.deleteDirectoryRecursively(path);
+            }
+        }
+    }
+
+    /**
+     * Remove unstaged files
+     *
+     * @throws MyGitIllegalStateException if an internal error occurs
+     * @throws IOException                if filesystem I/O error occurs
+     */
+    public void clean() throws MyGitIllegalStateException, IOException {
+        cleanTree(internalUpdater.getHeadTree(),
+                myGitRepositoryRootDirectory);
+    }
+
+    private void cleanTree(@Nullable Tree currentTree,
+                           @NotNull Path pathPrefix)
+            throws IOException, MyGitIllegalStateException {
+        final List<Path> unstagedPaths = Files.list(pathPrefix)
+                .filter(path -> !isMyGitInternalPath(path))
+                .collect(Collectors.toList());
+        final List<Tree.TreeEdge> treeEdges = currentTree == null
+                ? new ArrayList<>()
+                : currentTree.getEdgesToChildren();
+        for (Tree.TreeEdge childEdge : treeEdges) {
+            final Path childPath = Paths.get(pathPrefix.toString(), childEdge.getName());
+            unstagedPaths.remove(childPath);
+            if (childEdge.getType().equals(Tree.TYPE)) {
+                cleanTree(internalUpdater.readTree(childEdge.getHash()),
+                        childPath);
+            }
+        }
+        for (Path path : unstagedPaths) {
+            if (Files.isDirectory(path)) {
+                InternalUpdater.deleteDirectoryRecursively(path);
+            } else {
+                Files.delete(path);
             }
         }
     }
@@ -403,6 +447,7 @@ public class MyGitActionHandler {
         internalUpdater.writeIndexPaths(new HashSet<>());
     }
 
+    @NotNull
     private String rebuildTree(@Nullable Tree currentTree,
                                @NotNull Path pathPrefix,
                                Set<Path> indexedPaths)
