@@ -26,23 +26,6 @@ public class MyGitActionHandler {
     private final InternalUpdater internalUpdater;
 
     /**
-     * Initializes a MyGit repository in the given directory
-     * @param directory directory to initialise a repository in
-     * @throws MyGitIllegalArgumentException if the given path is not absolute
-     * @throws MyGitIllegalStateException if the initialisation fails due to an internal error
-     * @throws MyGitDoubleInitializationException if the repository is already initialised in the given directory
-     * @throws IOException if filesystem I/O error occurs during the initialisation
-     */
-    public static void init(@NotNull Path directory)
-            throws MyGitIllegalArgumentException, MyGitIllegalStateException,
-            MyGitDoubleInitializationException, IOException {
-        if (!directory.isAbsolute()) {
-            throw new MyGitIllegalArgumentException("Path given as a parameter should be absolute");
-        }
-        InternalUpdater.init(directory);
-    }
-
-    /**
      * Constructs a handler in the given directory
      * @param currentDirectory directory to construct handler in
      * @throws MyGitIllegalArgumentException if given path is not absolute
@@ -65,6 +48,25 @@ public class MyGitActionHandler {
     }
 
     /**
+     * Initializes a MyGit repository in the given directory
+     * @param directory directory to initialise a repository in
+     * @throws MyGitIllegalArgumentException if the given path is not absolute
+     * @throws MyGitIllegalStateException if the initialisation fails due to an internal error
+     * @throws MyGitDoubleInitializationException if the repository is already initialised in the given directory
+     * @throws IOException if filesystem I/O error occurs during the initialisation
+     */
+    public void init(@NotNull Path directory)
+            throws MyGitIllegalArgumentException, MyGitIllegalStateException,
+            MyGitDoubleInitializationException, IOException {
+        internalUpdater.getLogger().trace("init -- started in " + directory);
+        if (!directory.isAbsolute()) {
+            throw new MyGitIllegalArgumentException("Path given as a parameter should be absolute");
+        }
+        internalUpdater.init(directory);
+        internalUpdater.getLogger().trace("init -- done in " + directory);
+    }
+
+    /**
      * Adds paths to the current index.
      *
      * @param arguments list of paths to add to the index
@@ -74,7 +76,12 @@ public class MyGitActionHandler {
      */
     public void add(@NotNull String[] arguments)
             throws MyGitIllegalArgumentException, MyGitIllegalStateException, IOException {
+        internalUpdater.getLogger().trace("add -- started with paths:");
+        for (String argument : arguments) {
+            internalUpdater.getLogger().trace(argument);
+        }
         performUpdateToIndex(arguments, paths -> paths::add);
+        internalUpdater.getLogger().trace("add -- done");
     }
 
     /**
@@ -87,39 +94,17 @@ public class MyGitActionHandler {
      */
     public void reset(@NotNull String[] arguments)
             throws MyGitIllegalArgumentException, IOException, MyGitIllegalStateException {
+        internalUpdater.getLogger().trace("reset -- started with paths:");
+        for (String argument : arguments) {
+            internalUpdater.getLogger().trace(argument);
+        }
         performUpdateToIndex(arguments, paths -> paths::remove);
         Set<Path> args = Arrays.stream(arguments)
                 .map(path -> Paths.get(path).relativize(myGitRepositoryRootDirectory))
                 .collect(Collectors.toSet());
         args.removeAll(internalUpdater.readIndexPaths());
         resetStates(internalUpdater.getHeadTree(), myGitRepositoryRootDirectory, args);
-    }
-
-    private void resetStates(@Nullable Tree currentTree,
-                             @NotNull Path pathPrefix,
-                             @NotNull Set<Path> args)
-            throws IOException, MyGitIllegalStateException {
-        final List<Tree.TreeEdge> treeEdges = currentTree == null
-                ? new ArrayList<>()
-                : currentTree.getEdgesToChildren();
-        for (Tree.TreeEdge childEdge : treeEdges) {
-            final Path childPath = Paths.get(pathPrefix.toString(), childEdge.getName());
-            if (childEdge.getType().equals(Tree.TYPE)) {
-                Tree childTree = internalUpdater.readTree(childEdge.getHash());
-                if (args.contains(childPath)) {
-                    internalUpdater.loadFilesFromTree(childTree,
-                                                      childPath);
-                } else {
-                    resetStates(childTree, childPath, args);
-                }
-            } else {
-                if (args.contains(childPath)) {
-                    Tree tempTree = new Tree();
-                    tempTree.addEdgeToChild(childEdge);
-                    internalUpdater.loadFilesFromTree(tempTree, pathPrefix);
-                }
-            }
-        }
+        internalUpdater.getLogger().trace("reset -- done");
     }
 
     /**
@@ -135,6 +120,7 @@ public class MyGitActionHandler {
     public void checkout(@NotNull String revision)
             throws MyGitMissingPrerequisitesException, IOException,
                 MyGitIllegalStateException, MyGitIllegalArgumentException {
+        internalUpdater.getLogger().trace("checkout -- started with revision=" + revision);
         if (!internalUpdater.readIndexPaths().isEmpty()) {
             throw new MyGitMissingPrerequisitesException("Unstaged changes detected. Checkout cancelled");
         }
@@ -157,6 +143,7 @@ public class MyGitActionHandler {
                 internalUpdater.readCommit(headCommitHash),
                 internalUpdater.readCommit(newCommitHash));
         internalUpdater.setHeadStatus(new HeadStatus(newHeadType, revision));
+        internalUpdater.getLogger().trace("checkout -- done");
     }
 
     /**
@@ -169,6 +156,7 @@ public class MyGitActionHandler {
      */
     public void commit(@NotNull String message)
             throws MyGitIllegalStateException, IOException, MyGitIllegalArgumentException, MyGitEmptyCommitException {
+        internalUpdater.getLogger().trace("commit -- started with message=" + message);
         if (message.isEmpty()) {
             throw new MyGitIllegalArgumentException("Commit message should not be empty");
         }
@@ -184,6 +172,7 @@ public class MyGitActionHandler {
         final String commitHash = internalUpdater.writeObjectToFilesystem(commit);
         internalUpdater.moveHeadToCommitHash(commitHash);
         internalUpdater.writeIndexPaths(new HashSet<>());
+        internalUpdater.getLogger().trace("checkout -- done");
     }
 
     /**
@@ -195,10 +184,12 @@ public class MyGitActionHandler {
      */
     public void createBranch(@NotNull String branchName)
             throws MyGitIllegalArgumentException, MyGitIllegalStateException, IOException {
+        internalUpdater.getLogger().trace("branch create -- started with name=" + branchName);
         if (listBranches().contains(new Branch(branchName))) {
             throw new MyGitIllegalArgumentException("Branch '" + branchName + "' already exists");
         }
         internalUpdater.writeBranch(branchName, internalUpdater.getHeadCommitHash());
+        internalUpdater.getLogger().trace("branch create -- done");
     }
 
     /**
@@ -210,6 +201,7 @@ public class MyGitActionHandler {
      */
     public void deleteBranch(@NotNull String branchName)
             throws MyGitIllegalStateException, IOException, MyGitIllegalArgumentException {
+        internalUpdater.getLogger().trace("branch delete -- started with name=" + branchName);
         HeadStatus headStatus = getHeadStatus();
         if (headStatus.getType().equals(Branch.TYPE) && headStatus.getName().equals(branchName)) {
             throw new MyGitIllegalArgumentException("Cannot delete currently checked-out branch '" + branchName + "'");
@@ -218,6 +210,7 @@ public class MyGitActionHandler {
             throw new MyGitIllegalArgumentException("Branch '" + branchName + "' does not exist");
         }
         internalUpdater.deleteBranch(branchName);
+        internalUpdater.getLogger().trace("branch delete -- done");
     }
 
     /**
@@ -228,6 +221,7 @@ public class MyGitActionHandler {
      */
     @NotNull
     public List<CommitInfo> log() throws MyGitIllegalStateException, IOException {
+        internalUpdater.getLogger().trace("log -- started");
         final TreeSet<Commit> commitTree = new TreeSet<>();
         buildCommitTree(internalUpdater.getHeadCommit(), commitTree);
         final List<CommitInfo> output = new LinkedList<>();
@@ -238,6 +232,7 @@ public class MyGitActionHandler {
                     commit.getCreationDate()));
         }
         Collections.reverse(output);
+        internalUpdater.getLogger().trace("log -- done");
         return output;
     }
 
@@ -256,6 +251,7 @@ public class MyGitActionHandler {
     public void merge(@NotNull String branchName)
             throws MyGitMissingPrerequisitesException, IOException,
                 MyGitIllegalStateException, MyGitIllegalArgumentException {
+        internalUpdater.getLogger().trace("merge -- started with branch name=" + branchName);
         if (!internalUpdater.readIndexPaths().isEmpty()) {
             throw new MyGitMissingPrerequisitesException("Unstaged changes detected. Merge cancelled");
         }
@@ -278,6 +274,7 @@ public class MyGitActionHandler {
                 new Commit(mergedTreeHash, "Merge commit", parentHashes));
         internalUpdater.writeBranch(headStatus.getName(), mergeCommitHash);
         checkout(headStatus.getName());
+        internalUpdater.getLogger().trace("merge -- done");
     }
 
     /**
@@ -290,10 +287,12 @@ public class MyGitActionHandler {
     @NotNull
     public Map<Path, FileStatus> status()
             throws MyGitIllegalStateException, IOException {
+        internalUpdater.getLogger().trace("status -- started");
         Map<Path, FileStatus> result = new HashMap<>();
         buildStagingStatus(internalUpdater.getHeadTree(),
                 myGitRepositoryRootDirectory,
                 result);
+        internalUpdater.getLogger().trace("status -- done");
         return result;
     }
 
@@ -307,6 +306,10 @@ public class MyGitActionHandler {
      */
     public void rm(@NotNull List<Path> paths)
             throws IOException, MyGitIllegalArgumentException, MyGitIllegalStateException {
+        internalUpdater.getLogger().trace("rm -- started with paths:");
+        for (Path path : paths) {
+            internalUpdater.getLogger().trace(path);
+        }
         String notFound = paths
                 .stream()
                 .filter(Files::notExists)
@@ -341,8 +344,37 @@ public class MyGitActionHandler {
      * @throws IOException                if filesystem I/O error occurs
      */
     public void clean() throws MyGitIllegalStateException, IOException {
+        internalUpdater.getLogger().trace("clean -- started");
         cleanTree(internalUpdater.getHeadTree(),
                 myGitRepositoryRootDirectory);
+        internalUpdater.getLogger().trace("clean -- done");
+    }
+
+    private void resetStates(@Nullable Tree currentTree,
+                             @NotNull Path pathPrefix,
+                             @NotNull Set<Path> args)
+            throws IOException, MyGitIllegalStateException {
+        final List<Tree.TreeEdge> treeEdges = currentTree == null
+                ? new ArrayList<>()
+                : currentTree.getEdgesToChildren();
+        for (Tree.TreeEdge childEdge : treeEdges) {
+            final Path childPath = Paths.get(pathPrefix.toString(), childEdge.getName());
+            if (childEdge.getType().equals(Tree.TYPE)) {
+                Tree childTree = internalUpdater.readTree(childEdge.getHash());
+                if (args.contains(childPath)) {
+                    internalUpdater.loadFilesFromTree(childTree,
+                            childPath);
+                } else {
+                    resetStates(childTree, childPath, args);
+                }
+            } else {
+                if (args.contains(childPath)) {
+                    Tree tempTree = new Tree();
+                    tempTree.addEdgeToChild(childEdge);
+                    internalUpdater.loadFilesFromTree(tempTree, pathPrefix);
+                }
+            }
+        }
     }
 
     private void cleanTree(@Nullable Tree currentTree,
@@ -423,8 +455,11 @@ public class MyGitActionHandler {
     private void performUpdateToIndex(@NotNull String[] arguments,
                                       @NotNull Function<Set<Path>, Consumer<Path>> action)
             throws MyGitIllegalStateException, MyGitIllegalArgumentException, IOException {
+        internalUpdater.getLogger().trace("updating index -- started");
+        internalUpdater.getLogger().trace("updating index -- checking paths");
         final List<Path> argsPaths = new ArrayList<>();
         for (String argument : arguments) {
+            internalUpdater.getLogger().trace("checking path " + argument);
             Path path = Paths.get(argument);
             if (!isMyGitInternalPath(path)) {
                 throw new MyGitIllegalArgumentException("Path '" + argument + "' is located outside MyGit repository");
@@ -433,11 +468,15 @@ public class MyGitActionHandler {
                 throw new MyGitIllegalArgumentException("Path '" + argument + "' does not exist");
             }
             argsPaths.add(path);
+            internalUpdater.getLogger().trace("checking path " + argument + " -- OK");
         }
+        internalUpdater.getLogger().trace("updating index -- checking paths -- done");
+        internalUpdater.getLogger().trace("updating index itself");
         final Set<Path> indexedPaths = internalUpdater.readIndexPaths();
         final Consumer<Path> indexUpdater = action.apply(indexedPaths);
         argsPaths.forEach(indexUpdater);
         internalUpdater.writeIndexPaths(indexedPaths);
+        internalUpdater.getLogger().trace("updating index -- done");
     }
 
     @NotNull
@@ -574,7 +613,10 @@ public class MyGitActionHandler {
      * @throws IOException if filesystem I/O error occurs
      */
     public HeadStatus getHeadStatus() throws IOException, MyGitIllegalStateException {
-        return internalUpdater.getHeadStatus();
+        internalUpdater.getLogger().trace("getting head status -- started");
+        HeadStatus headStatus = internalUpdater.getHeadStatus();
+        internalUpdater.getLogger().trace("getting head status -- done");
+        return headStatus;
     }
 
     private List<String> listCommitHashes() throws MyGitIllegalStateException, IOException {
@@ -588,7 +630,10 @@ public class MyGitActionHandler {
      * @throws IOException if filesystem I/O error occurs
      */
     public List<Branch> listBranches() throws MyGitIllegalStateException, IOException {
-        return internalUpdater.listBranches();
+        internalUpdater.getLogger().trace("listing branches -- started");
+        List<Branch> branchList = internalUpdater.listBranches();
+        internalUpdater.getLogger().trace("listing branches -- done");
+        return branchList;
     }
 
     private boolean isMyGitInternalPath(@Nullable Path path) {

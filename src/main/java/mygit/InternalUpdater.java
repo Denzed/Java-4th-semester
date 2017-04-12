@@ -257,6 +257,7 @@ class InternalUpdater {
 
     void loadFilesFromTree(@NotNull Tree tree, @NotNull Path path)
             throws MyGitIllegalStateException, IOException {
+        logger.trace("loading files from tree to path=" + path.toString() + "-- started");
         for (Tree.TreeEdge childEdge : tree.getEdgesToChildren()) {
             final Path childPath = Paths.get(path.toString(), childEdge.getName());
             if (childEdge.getType().equals(Blob.TYPE)) {
@@ -279,10 +280,12 @@ class InternalUpdater {
                 loadFilesFromTree(childTree, childPath);
             }
         }
+        logger.trace("loading files from tree -- started");
     }
 
     private void deleteFilesFromTree(@NotNull Tree tree, @NotNull Path path)
             throws MyGitIllegalStateException, IOException {
+        logger.trace("deleting files from tree at path=" + path.toString() + "-- started");
         for (Tree.TreeEdge childEdge : tree.getEdgesToChildren()) {
             final Path childPath = Paths.get(path.toString(), childEdge.getName());
             final File childFile = childPath.toFile();
@@ -303,6 +306,7 @@ class InternalUpdater {
                 Files.delete(childPath);
             }
         }
+        logger.trace("deleting files from tree -- started");
     }
 
     private Path getBranchPath(@NotNull String branchName) {
@@ -371,7 +375,7 @@ class InternalUpdater {
         return commitHashes;
     }
 
-    static void init(@NotNull Path directory)
+    void init(@NotNull Path directory)
             throws MyGitDoubleInitializationException, MyGitIllegalStateException, IOException {
         final Path myGitRootPath = Paths.get(directory.toString(), ".mygit");
         if (Files.exists(myGitRootPath)) {
