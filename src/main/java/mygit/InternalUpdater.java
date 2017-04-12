@@ -3,9 +3,12 @@ package mygit;
 import mygit.exceptions.MyGitDoubleInitializationException;
 import mygit.exceptions.MyGitIllegalArgumentException;
 import mygit.exceptions.MyGitIllegalStateException;
+import mygit.logger.Log4j2ContextBuilder;
 import mygit.objects.*;
 import mygit.utils.MyGitHasher;
 import mygit.utils.MyGitSHA1Hasher;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.core.LoggerContext;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.*;
@@ -23,6 +26,8 @@ class InternalUpdater {
     private final Path myGitRootDirectory;
     @NotNull
     private final MyGitHasher hasher;
+    @NotNull
+    private final Logger logger;
 
     InternalUpdater(@NotNull Path myGitRootDirectory, @NotNull MyGitHasher hasher)
             throws MyGitIllegalArgumentException {
@@ -31,6 +36,10 @@ class InternalUpdater {
         }
         this.myGitRootDirectory = myGitRootDirectory;
         this.hasher = hasher;
+        final LoggerContext loggerContext =
+                Log4j2ContextBuilder.createContext(myGitRootDirectory);
+        this.logger = loggerContext.getRootLogger();
+        logger.trace("Initialized logger");
     }
 
     @NotNull
@@ -390,5 +399,10 @@ class InternalUpdater {
         final String treeHash = internalStateAccessor.writeObjectToFilesystem(new Tree());
         final Commit primaryCommit = new Commit(treeHash);
         return internalStateAccessor.writeObjectToFilesystem(primaryCommit);
+    }
+
+    @NotNull
+    Logger getLogger() {
+        return logger;
     }
 }

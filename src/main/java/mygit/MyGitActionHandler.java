@@ -122,7 +122,6 @@ public class MyGitActionHandler {
         }
     }
 
-
     /**
      * Checks out a branch given by its name or a commit given by its hash and sets it a new HEAD
      * <p>
