@@ -72,32 +72,56 @@ public class MyGitActionHandler {
      * @throws IOException if filesystem I/O error occurs
      * @throws MyGitIllegalStateException if an internal error occurs
      */
-    public void addPathsToIndex(@NotNull String[] arguments)
+    public void add(@NotNull String[] arguments)
             throws MyGitIllegalArgumentException, MyGitIllegalStateException, IOException {
         performUpdateToIndex(arguments, paths -> paths::add);
     }
 
     /**
-     * Removes paths from the current index.
+     * Resets files to their last checked out state
      *
      * @param arguments list of paths to remove from the index
      * @throws MyGitIllegalArgumentException if the array contains invalid paths
      * @throws IOException if filesystem I/O error occurs
      * @throws MyGitIllegalStateException if an internal error occurs
      */
-    public void resetIndexPaths(@NotNull String[] arguments)
-            throws MyGitIllegalStateException, MyGitIllegalArgumentException, IOException {
+    public void reset(@NotNull String[] arguments)
+            throws MyGitIllegalArgumentException, IOException, MyGitIllegalStateException {
         performUpdateToIndex(arguments, paths -> paths::remove);
+        Set<Path> args = Arrays.stream(arguments)
+                .map(path -> Paths.get(path).relativize(myGitRepositoryRootDirectory))
+                .collect(Collectors.toSet());
+        args.removeAll(internalUpdater.readIndexPaths());
+        resetStates(internalUpdater.getHeadTree(), myGitRepositoryRootDirectory, args);
     }
 
-    /**
-     * Removes all paths from the current index
-     * @throws IOException if filesystem I/O error occurs
-     * @throws MyGitIllegalStateException if an internal error occurs
-     */
-    public void resetAllIndexPaths() throws IOException, MyGitIllegalStateException {
-        internalUpdater.writeIndexPaths(new HashSet<>());
+    private void resetStates(@Nullable Tree currentTree,
+                             @NotNull Path pathPrefix,
+                             @NotNull Set<Path> args)
+            throws IOException, MyGitIllegalStateException {
+        final List<Tree.TreeEdge> treeEdges = currentTree == null
+                ? new ArrayList<>()
+                : currentTree.getEdgesToChildren();
+        for (Tree.TreeEdge childEdge : treeEdges) {
+            final Path childPath = Paths.get(pathPrefix.toString(), childEdge.getName());
+            if (childEdge.getType().equals(Tree.TYPE)) {
+                Tree childTree = internalUpdater.readTree(childEdge.getHash());
+                if (args.contains(childPath)) {
+                    internalUpdater.loadFilesFromTree(childTree,
+                                                      childPath);
+                } else {
+                    resetStates(childTree, childPath, args);
+                }
+            } else {
+                if (args.contains(childPath)) {
+                    Tree tempTree = new Tree();
+                    tempTree.addEdgeToChild(childEdge);
+                    internalUpdater.loadFilesFromTree(tempTree, pathPrefix);
+                }
+            }
+        }
     }
+
 
     /**
      * Checks out a branch given by its name or a commit given by its hash and sets it a new HEAD
@@ -160,7 +184,7 @@ public class MyGitActionHandler {
                                          Collections.singletonList(internalUpdater.getHeadCommitHash()));
         final String commitHash = internalUpdater.writeObjectToFilesystem(commit);
         internalUpdater.moveHeadToCommitHash(commitHash);
-        resetIndexPaths();
+        internalUpdater.writeIndexPaths(new HashSet<>());
     }
 
     /**
@@ -280,9 +304,10 @@ public class MyGitActionHandler {
      * @param paths paths to files to remove
      * @throws IOException                   if filesystem I/O error occurs
      * @throws MyGitIllegalArgumentException if some files are missing
+     * @throws MyGitIllegalStateException if an internal error occurs
      */
     public void rm(@NotNull List<Path> paths)
-            throws IOException, MyGitIllegalArgumentException {
+            throws IOException, MyGitIllegalArgumentException, MyGitIllegalStateException {
         String notFound = paths
                 .stream()
                 .filter(Files::notExists)
@@ -303,6 +328,11 @@ public class MyGitActionHandler {
                 InternalUpdater.deleteDirectoryRecursively(path);
             }
         }
+        resetIndexPaths((String[]) paths
+                .stream()
+                .map(Path::toString)
+                .collect(Collectors.toList())
+                .toArray());
     }
 
     /**
@@ -319,9 +349,11 @@ public class MyGitActionHandler {
     private void cleanTree(@Nullable Tree currentTree,
                            @NotNull Path pathPrefix)
             throws IOException, MyGitIllegalStateException {
+        final Set<Path> stagedPaths = internalUpdater.readIndexPaths();
         final List<Path> unstagedPaths = Files.list(pathPrefix)
                 .filter(path -> !isMyGitInternalPath(path))
                 .collect(Collectors.toList());
+        unstagedPaths.removeAll(stagedPaths);
         final List<Tree.TreeEdge> treeEdges = currentTree == null
                 ? new ArrayList<>()
                 : currentTree.getEdgesToChildren();
@@ -342,13 +374,20 @@ public class MyGitActionHandler {
         }
     }
 
+    private void resetIndexPaths(@NotNull String[] arguments)
+            throws MyGitIllegalStateException, MyGitIllegalArgumentException, IOException {
+        performUpdateToIndex(arguments, paths -> paths::remove);
+    }
+
     private void buildStagingStatus(@Nullable Tree currentTree,
                                     @NotNull Path pathPrefix,
                                     @NotNull Map<Path, FileStatus> result)
             throws IOException, MyGitIllegalStateException {
+        final Set<Path> stagedPaths = internalUpdater.readIndexPaths();
         final List<Path> unstagedPaths = Files.list(pathPrefix)
                 .filter(path -> !isMyGitInternalPath(path))
                 .collect(Collectors.toList());
+        unstagedPaths.removeAll(stagedPaths);
         final List<Tree.TreeEdge> treeEdges = currentTree == null
                 ? new ArrayList<>()
                 : currentTree.getEdgesToChildren();
@@ -361,7 +400,7 @@ public class MyGitActionHandler {
                         result);
             } else {
                 result.put(childPath,
-                        buildFileStagingStatus(childPath, childEdge.getHash()));
+                        buildFileStagingStatus(childPath, stagedPaths, childEdge.getHash()));
             }
         }
         unstagedPaths.stream()
@@ -369,15 +408,15 @@ public class MyGitActionHandler {
                 .forEach(path -> result.put(path, FileStatus.UNSTAGED));
     }
 
-
-
     private FileStatus buildFileStagingStatus(@NotNull Path filePath,
-                                              @NotNull String stagedHash)
+                                              @NotNull Set<Path> stagedPaths,
+                                              @NotNull String committedHash)
             throws IOException, MyGitIllegalStateException {
-        if (filePath.toFile().exists() && filePath.toFile().isFile()) {
-            return (stagedHash.equals(internalUpdater.computeFileHashFromPath(filePath))
-                    ? FileStatus.STAGED
-                    : FileStatus.MODIFIED);
+        if (stagedPaths.contains(filePath)) {
+            return FileStatus.STAGED;
+        } else if (filePath.toFile().exists() && filePath.toFile().isFile()
+                && !committedHash.equals(internalUpdater.computeFileHashFromPath(filePath))) {
+            return FileStatus.MODIFIED;
         }
         return FileStatus.DELETED;
     }
@@ -443,10 +482,6 @@ public class MyGitActionHandler {
         return internalUpdater.writeObjectToFilesystem(mergedTree);
     }
 
-    private void resetIndexPaths() throws MyGitIllegalStateException, IOException {
-        internalUpdater.writeIndexPaths(new HashSet<>());
-    }
-
     @NotNull
     private String rebuildTree(@Nullable Tree currentTree,
                                @NotNull Path pathPrefix,
@@ -482,7 +517,8 @@ public class MyGitActionHandler {
     }
 
     @Nullable
-    private Tree.TreeEdge rebuildTreeEdge(@NotNull Tree.TreeEdge child, @NotNull Path path,
+    private Tree.TreeEdge rebuildTreeEdge(@NotNull Tree.TreeEdge child,
+                                          @NotNull Path path,
                                           @NotNull Set<Path> indexedPaths)
             throws MyGitIllegalStateException, IOException {
         if (Files.exists(path)) {
@@ -493,7 +529,9 @@ public class MyGitActionHandler {
                             ? new Tree.TreeEdge(rebuildTree(childTree, path, indexedPaths),
                                                 child.getName(),
                                                 child.getType())
-                            : updateBlobIfIndexed(child, path, indexedPaths);
+                            : new Tree.TreeEdge(internalUpdater.writeBlobFromPath(path),
+                                                child.getName(),
+                                                Blob.TYPE);
                 case Blob.TYPE:
                     final Blob childBlob = internalUpdater.readBlob(child.getHash());
                     if (path.toFile().isDirectory()) {
@@ -505,7 +543,9 @@ public class MyGitActionHandler {
                         final byte[] currentContent = Files.readAllBytes(path);
                         return Arrays.equals(committedContent, currentContent)
                                 ? child
-                                : updateBlobIfIndexed(child, path, indexedPaths);
+                                : new Tree.TreeEdge(internalUpdater.writeBlobFromPath(path),
+                                                    child.getName(),
+                                                    Blob.TYPE);
                     }
                 default:
                     throw new MyGitIllegalStateException("Got unknown type in process of the tree traversal: "
@@ -515,15 +555,6 @@ public class MyGitActionHandler {
             return child;
         }
         return null;
-    }
-
-    private Tree.TreeEdge updateBlobIfIndexed(@NotNull Tree.TreeEdge childEdge,
-                                              @NotNull Path path,
-                                              @NotNull Set<Path> indexedPaths)
-            throws IOException, MyGitIllegalStateException {
-        return indexedPaths.contains(myGitRepositoryRootDirectory.relativize(path))
-                ? new Tree.TreeEdge(internalUpdater.writeBlobFromPath(path), childEdge.getName(), Blob.TYPE)
-                : childEdge;
     }
 
     private void buildCommitTree(@NotNull Commit currentCommit, @NotNull TreeSet<Commit> commitTree)

@@ -41,8 +41,8 @@ public class MyGitSHA1Hasher implements MyGitHasher {
         return new SHA1HashParts(hash);
     }
 
-    private class SHA1HashParts implements MyGitHasher.HashParts {
-        private static final int DIRECTORY_HASH_LENGTH = 3;
+    class SHA1HashParts implements MyGitHasher.HashParts {
+        static final int DIRECTORY_HASH_LENGTH = 3;
 
         @NotNull
         private String directoryHash;

@@ -32,7 +32,6 @@ public class ArgsParser {
     private static final String MERGE = "merge";
     private static final String HELP = "help";
     private static final String RESET = "reset";
-    private static final String RESET_ALL = "resetall";
     private static final String CLEAN = "clean";
 
     @NotNull
@@ -74,9 +73,6 @@ public class ArgsParser {
                 break;
             case RESET:
                 handleResetCommand(actionHandler, argsWithoutCommand(args));
-                break;
-            case RESET_ALL:
-                actionHandler.resetAllIndexPaths();
                 break;
             case CLEAN:
                 actionHandler.clean();
@@ -122,7 +118,7 @@ public class ArgsParser {
     private void handleResetCommand(@NotNull MyGitActionHandler actionHandler, @NotNull String[] args)
             throws MyGitException, IOException, InvalidCommandException {
         if (args.length > 0) {
-            actionHandler.resetIndexPaths(args);
+            actionHandler.reset(args);
         } else {
             throw new InvalidCommandException(RESET + ": at least one file to reset must be specified");
         }
@@ -131,7 +127,7 @@ public class ArgsParser {
     private void handleAddCommand(@NotNull MyGitActionHandler actionHandler, @NotNull String[] args)
             throws InvalidCommandException, MyGitException, IOException {
         if (args.length > 0) {
-            actionHandler.addPathsToIndex(args);
+            actionHandler.add(args);
         } else {
             throw new InvalidCommandException(ADD + ": at least one file to add must be specified");
         }
@@ -228,8 +224,7 @@ public class ArgsParser {
             "work with current branch:\n" +
             "  " + ADD + " [<files>]\n" +
             "  " + RESET + " [<files>]\n" +
-            "  " + RESET_ALL + "\n" +
-                    "  " + RM + "\n" +
+            "  " + RM + "\n" +
             "\n" +
             "examine the commit history:\n" +
             "  " + LOG + "\n" +
@@ -239,12 +234,12 @@ public class ArgsParser {
             "  " + CHECKOUT + " <branch> | <revision>\n" +
             "  " + COMMIT + " <message>\n" +
             "  " + MERGE + " <branch>\n" +
-                    "\n" +
-                    "show the working tree status:\n" +
-                    "  " + STATUS + "\n" +
-                    "\n" +
-                    "remove unstaged files:\n" +
-                    "  " + CLEAN + "\n" +
+            "\n" +
+            "show the working tree status:\n" +
+            "  " + STATUS + "\n" +
+            "\n" +
+            "remove unstaged files:\n" +
+            "  " + CLEAN + "\n" +
             "\n" +
             "'mygit help' list all available commands.");
     }

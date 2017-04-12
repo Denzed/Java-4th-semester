@@ -246,7 +246,7 @@ class InternalUpdater {
         return objectClass.cast(readObject(objectHash));
     }
 
-    private void loadFilesFromTree(@NotNull Tree tree, @NotNull Path path)
+    void loadFilesFromTree(@NotNull Tree tree, @NotNull Path path)
             throws MyGitIllegalStateException, IOException {
         for (Tree.TreeEdge childEdge : tree.getEdgesToChildren()) {
             final Path childPath = Paths.get(path.toString(), childEdge.getName());

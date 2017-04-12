@@ -6,9 +6,8 @@ import mygit.exceptions.MyGitMissingPrerequisitesException;
 import mygit.objects.Branch;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
+import testing.TestWithTemporaryFolder;
 
 import java.io.*;
 import java.nio.file.Files;
@@ -17,11 +16,8 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class MyGitTest {
-    @Rule
-    public final TemporaryFolder temporaryFolder = new TemporaryFolder();
-
-    private Path folderPath, myGitPath, myGitIndexPath, myGitObjectsPath, myGitHEADPath, myGitBranchesPath;
+public class MyGitTest extends TestWithTemporaryFolder {
+    private Path myGitPath, myGitIndexPath, myGitObjectsPath, myGitHEADPath, myGitBranchesPath;
     private final List<String> FILES = Arrays.asList("file1", "file2", "file3");
     private List<Path> FILE_PATHS;
     private final List<String> FILE_CONTENTS = Arrays.asList("file1_contents", "file2_contents", "file3_contents");
@@ -31,7 +27,7 @@ public class MyGitTest {
 
     @Before
     public void initialise() throws Exception {
-        folderPath = temporaryFolder.getRoot().toPath();
+        super.initialise();
         String folderPathString = folderPath.toString();
         myGitPath = Paths.get(folderPathString, ".mygit");
         myGitIndexPath = Paths.get(folderPathString, ".mygit", "index");
@@ -114,7 +110,7 @@ public class MyGitTest {
         }
         for (Path path : FILE_PATHS) {
             String[] paths = {path.toString()};
-            actionHandler.addPathsToIndex(paths);
+            actionHandler.add(paths);
         }
     }
 
@@ -123,7 +119,7 @@ public class MyGitTest {
         MyGitActionHandler.init(folderPath);
         MyGitActionHandler actionHandler = new MyGitActionHandler(folderPath);
         String[] paths = {FILE_PATHS.get(0).toString()};
-        actionHandler.addPathsToIndex(paths);
+        actionHandler.add(paths);
     }
 
     @Test
@@ -135,7 +131,7 @@ public class MyGitTest {
         }
         for (Path path : FILE_PATHS) {
             String[] paths = {path.toString()};
-            actionHandler.addPathsToIndex(paths);
+            actionHandler.add(paths);
         }
         actionHandler.commit("added some files");
     }
@@ -156,9 +152,31 @@ public class MyGitTest {
         }
         for (Path path : FILE_PATHS) {
             String[] paths = {path.toString()};
-            actionHandler.addPathsToIndex(paths);
+            actionHandler.add(paths);
         }
         actionHandler.commit("");
+    }
+
+    @Test
+    public void CheckoutTest() throws Exception {
+        MyGitActionHandler.init(folderPath);
+        MyGitActionHandler actionHandler = new MyGitActionHandler(folderPath);
+        File file = temporaryFolder.newFile(FILES.get(0));
+        try (FileWriter fileWriter = new FileWriter(file)) {
+            fileWriter.write(FILE_CONTENTS.get(0));
+        }
+        String[] paths = {FILE_PATHS.get(0).toString()};
+        actionHandler.add(paths);
+        actionHandler.commit("added file");
+        actionHandler.createBranch(BRANCHES.get(0));
+        actionHandler.checkout(BRANCHES.get(0));
+        try (FileWriter fileWriter = new FileWriter(file)) {
+            fileWriter.write(NEW_FILE_CONTENTS.get(0));
+        }
+        actionHandler.add(paths);
+        actionHandler.commit("modified file in another branch");
+        actionHandler.checkout("master");
+        checkFileContents(file, FILE_CONTENTS.get(0));
     }
 
     @Test(expected = MyGitMissingPrerequisitesException.class)
@@ -170,7 +188,7 @@ public class MyGitTest {
             fileWriter.write(FILE_CONTENTS.get(0));
         }
         String[] paths = {FILE_PATHS.get(0).toString()};
-        actionHandler.addPathsToIndex(paths);
+        actionHandler.add(paths);
         actionHandler.createBranch(BRANCHES.get(0));
         actionHandler.checkout(BRANCHES.get(0));
     }
@@ -191,14 +209,14 @@ public class MyGitTest {
             fileWriter.write(FILE_CONTENTS.get(0));
         }
         String[] paths = {FILE_PATHS.get(0).toString()};
-        actionHandler.addPathsToIndex(paths);
+        actionHandler.add(paths);
         actionHandler.commit("added file");
         actionHandler.createBranch(BRANCHES.get(0));
         actionHandler.checkout(BRANCHES.get(0));
         try (FileWriter fileWriter = new FileWriter(file)) {
             fileWriter.write(NEW_FILE_CONTENTS.get(0));
         }
-        actionHandler.addPathsToIndex(paths);
+        actionHandler.add(paths);
         actionHandler.commit("modified file in another branch");
         actionHandler.checkout("master");
         actionHandler.merge(BRANCHES.get(0));
@@ -211,11 +229,11 @@ public class MyGitTest {
         MyGitActionHandler actionHandler = new MyGitActionHandler(folderPath);
         temporaryFolder.newFile(FILES.get(0));
         String[] paths = {FILE_PATHS.get(0).toString()};
-        actionHandler.addPathsToIndex(paths);
+        actionHandler.add(paths);
         actionHandler.commit("added file");
         actionHandler.createBranch(BRANCHES.get(0));
         actionHandler.checkout(BRANCHES.get(0));
-        actionHandler.addPathsToIndex(paths);
+        actionHandler.add(paths);
         actionHandler.merge("master");
     }
 
