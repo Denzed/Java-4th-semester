@@ -1,5 +1,6 @@
 package testing;
 
+import mygit.MyGitActionHandler;
 import org.junit.Assert;
 import org.junit.Before;
 
@@ -22,6 +23,8 @@ public abstract class MyGitTest extends TestWithTemporaryFolder {
     protected final List<String> NEW_FILE_CONTENTS =
             Arrays.asList("new_file1_contents", "new_file2_contents", "new_file3_contents");
     protected final List<String> BRANCHES = Arrays.asList("branch1", "branch2", "branch3");
+
+    protected MyGitActionHandler actionHandler;
 
     @Before
     public void initialise() throws Exception {

@@ -29,6 +29,29 @@ class InternalUpdater {
     @NotNull
     private final Logger logger;
 
+    static InternalUpdater init(@NotNull Path directory)
+            throws MyGitDoubleInitializationException, MyGitIllegalStateException, IOException {
+        final Path myGitRootPath = Paths.get(directory.toString(), ".mygit");
+        if (Files.exists(myGitRootPath)) {
+            throw new MyGitDoubleInitializationException();
+        }
+        Files.createDirectory(myGitRootPath);
+        InternalUpdater internalUpdater;
+        try {
+            internalUpdater = new InternalUpdater(directory, new MyGitSHA1Hasher());
+        } catch (MyGitIllegalArgumentException ignored) {
+            throw new IllegalStateException();
+        }
+        Files.createFile(Paths.get(myGitRootPath.toString(), "HEAD"));
+        internalUpdater.setHeadStatus(new HeadStatus(Branch.TYPE, "master"));
+        Files.createFile(Paths.get(myGitRootPath.toString(), "index"));
+        Files.createDirectory(Paths.get(myGitRootPath.toString(), "objects"));
+        Files.createDirectory(Paths.get(myGitRootPath.toString(), "branches"));
+        final String commitHash = createInitialCommit(internalUpdater);
+        internalUpdater.writeBranch("master", commitHash);
+        return internalUpdater;
+    }
+
     InternalUpdater(@NotNull Path myGitRootDirectory, @NotNull MyGitHasher hasher)
             throws MyGitIllegalArgumentException {
         if (!myGitRootDirectory.isAbsolute()) {
@@ -373,28 +396,6 @@ class InternalUpdater {
             }
         }
         return commitHashes;
-    }
-
-    void init(@NotNull Path directory)
-            throws MyGitDoubleInitializationException, MyGitIllegalStateException, IOException {
-        final Path myGitRootPath = Paths.get(directory.toString(), ".mygit");
-        if (Files.exists(myGitRootPath)) {
-            throw new MyGitDoubleInitializationException();
-        }
-        Files.createDirectory(myGitRootPath);
-        InternalUpdater internalUpdater;
-        try {
-            internalUpdater = new InternalUpdater(directory, new MyGitSHA1Hasher());
-        } catch (MyGitIllegalArgumentException ignored) {
-            throw new IllegalStateException();
-        }
-        Files.createFile(Paths.get(myGitRootPath.toString(), "HEAD"));
-        internalUpdater.setHeadStatus(new HeadStatus(Branch.TYPE, "master"));
-        Files.createFile(Paths.get(myGitRootPath.toString(), "index"));
-        Files.createDirectory(Paths.get(myGitRootPath.toString(), "objects"));
-        Files.createDirectory(Paths.get(myGitRootPath.toString(), "branches"));
-        final String commitHash = createInitialCommit(internalUpdater);
-        internalUpdater.writeBranch("master", commitHash);
     }
 
     @NotNull

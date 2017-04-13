@@ -26,6 +26,24 @@ public class MyGitActionHandler {
     private final InternalUpdater internalUpdater;
 
     /**
+     * Initializes a MyGit repository in the given directory
+     * @param directory directory to initialise a repository in
+     * @throws MyGitIllegalArgumentException if the given path is not absolute
+     * @throws MyGitIllegalStateException if the initialisation fails due to an internal error
+     * @throws MyGitDoubleInitializationException if the repository is already initialised in the given directory
+     * @throws IOException if filesystem I/O error occurs during the initialisation
+     */
+    static public void init(@NotNull Path directory)
+            throws MyGitIllegalArgumentException, MyGitIllegalStateException,
+            MyGitDoubleInitializationException, IOException {
+        if (!directory.isAbsolute()) {
+            throw new MyGitIllegalArgumentException("Path given as a parameter should be absolute");
+        }
+        InternalUpdater internalUpdater = InternalUpdater.init(directory);
+        internalUpdater.getLogger().trace("init -- done in " + directory);
+    }
+
+    /**
      * Constructs a handler in the given directory
      * @param currentDirectory directory to construct handler in
      * @throws MyGitIllegalArgumentException if given path is not absolute
@@ -45,25 +63,6 @@ public class MyGitActionHandler {
         }
         myGitRepositoryRootDirectory = tmpPath;
         internalUpdater = new InternalUpdater(myGitRepositoryRootDirectory, new MyGitSHA1Hasher());
-    }
-
-    /**
-     * Initializes a MyGit repository in the given directory
-     * @param directory directory to initialise a repository in
-     * @throws MyGitIllegalArgumentException if the given path is not absolute
-     * @throws MyGitIllegalStateException if the initialisation fails due to an internal error
-     * @throws MyGitDoubleInitializationException if the repository is already initialised in the given directory
-     * @throws IOException if filesystem I/O error occurs during the initialisation
-     */
-    public void init(@NotNull Path directory)
-            throws MyGitIllegalArgumentException, MyGitIllegalStateException,
-            MyGitDoubleInitializationException, IOException {
-        internalUpdater.getLogger().trace("init -- started in " + directory);
-        if (!directory.isAbsolute()) {
-            throw new MyGitIllegalArgumentException("Path given as a parameter should be absolute");
-        }
-        internalUpdater.init(directory);
-        internalUpdater.getLogger().trace("init -- done in " + directory);
     }
 
     /**
@@ -121,7 +120,7 @@ public class MyGitActionHandler {
             throws MyGitMissingPrerequisitesException, IOException,
                 MyGitIllegalStateException, MyGitIllegalArgumentException {
         internalUpdater.getLogger().trace("checkout -- started with revision=" + revision);
-        if (!internalUpdater.readIndexPaths().isEmpty()) {
+        if (foundUncommittedChanges()) {
             throw new MyGitMissingPrerequisitesException("Unstaged changes detected. Checkout cancelled");
         }
         final HeadStatus headStatus = getHeadStatus();
@@ -160,11 +159,11 @@ public class MyGitActionHandler {
         if (message.isEmpty()) {
             throw new MyGitIllegalArgumentException("Commit message should not be empty");
         }
-        final Tree headTree = internalUpdater.getHeadTree();
-        final Set<Path> indexedPaths = internalUpdater.readIndexPaths();
-        if (indexedPaths.isEmpty()) {
+        if (!foundUncommittedChanges()) {
             throw new MyGitEmptyCommitException();
         }
+        final Tree headTree = internalUpdater.getHeadTree();
+        final Set<Path> indexedPaths = internalUpdater.readIndexPaths();
         final String newTreeHash = rebuildTree(headTree, myGitRepositoryRootDirectory, indexedPaths);
         final Commit commit = new Commit(newTreeHash,
                                          message,
@@ -172,7 +171,7 @@ public class MyGitActionHandler {
         final String commitHash = internalUpdater.writeObjectToFilesystem(commit);
         internalUpdater.moveHeadToCommitHash(commitHash);
         internalUpdater.writeIndexPaths(new HashSet<>());
-        internalUpdater.getLogger().trace("checkout -- done");
+        internalUpdater.getLogger().trace("commit -- done");
     }
 
     /**
@@ -252,7 +251,7 @@ public class MyGitActionHandler {
             throws MyGitMissingPrerequisitesException, IOException,
                 MyGitIllegalStateException, MyGitIllegalArgumentException {
         internalUpdater.getLogger().trace("merge -- started with branch name=" + branchName);
-        if (!internalUpdater.readIndexPaths().isEmpty()) {
+        if (foundUncommittedChanges()) {
             throw new MyGitMissingPrerequisitesException("Unstaged changes detected. Merge cancelled");
         }
         final HeadStatus headStatus = getHeadStatus();
@@ -291,6 +290,7 @@ public class MyGitActionHandler {
         Map<Path, FileStatus> result = new HashMap<>();
         buildStagingStatus(internalUpdater.getHeadTree(),
                 myGitRepositoryRootDirectory,
+                internalUpdater.readIndexPaths(),
                 result);
         internalUpdater.getLogger().trace("status -- done");
         return result;
@@ -310,19 +310,10 @@ public class MyGitActionHandler {
         for (Path path : paths) {
             internalUpdater.getLogger().trace(path);
         }
-        String notFound = paths
+        resetIndexPaths(paths
                 .stream()
-                .filter(Files::notExists)
                 .map(Path::toString)
-                .collect(String::new,
-                        (a, b) -> a += "\n" + b,
-                        (a, b) -> a += "\n" + b);
-        if (!notFound.isEmpty()) {
-            throw new MyGitIllegalArgumentException(
-                    "Following paths did not match any files:\n" +
-                            notFound +
-                            "\nOperation aborted.");
-        }
+                .collect(Collectors.toList()).toArray(new String[]{}));
         for (Path path : paths) {
             if (Files.isRegularFile(path)) {
                 Files.delete(path);
@@ -330,11 +321,6 @@ public class MyGitActionHandler {
                 InternalUpdater.deleteDirectoryRecursively(path);
             }
         }
-        resetIndexPaths((String[]) paths
-                .stream()
-                .map(Path::toString)
-                .collect(Collectors.toList())
-                .toArray());
     }
 
     /**
@@ -377,6 +363,16 @@ public class MyGitActionHandler {
         }
     }
 
+    private boolean foundUncommittedChanges()
+            throws MyGitIllegalStateException, IOException {
+        Map<Path,FileStatus> statusMap = status();
+        return statusMap
+                .values()
+                .stream()
+                .anyMatch(fileStatus -> !fileStatus.equals(FileStatus.UNSTAGED))
+            || !internalUpdater.readIndexPaths().isEmpty();
+    }
+
     private void cleanTree(@Nullable Tree currentTree,
                            @NotNull Path pathPrefix)
             throws IOException, MyGitIllegalStateException {
@@ -412,9 +408,9 @@ public class MyGitActionHandler {
 
     private void buildStagingStatus(@Nullable Tree currentTree,
                                     @NotNull Path pathPrefix,
+                                    @NotNull Set<Path> stagedPaths,
                                     @NotNull Map<Path, FileStatus> result)
             throws IOException, MyGitIllegalStateException {
-        final Set<Path> stagedPaths = internalUpdater.readIndexPaths();
         final List<Path> unstagedPaths = Files.list(pathPrefix)
                 .filter(path -> !isMyGitInternalPath(path))
                 .collect(Collectors.toList());
@@ -428,15 +424,14 @@ public class MyGitActionHandler {
             if (childEdge.getType().equals(Tree.TYPE)) {
                 buildStagingStatus(internalUpdater.readTree(childEdge.getHash()),
                         childPath,
+                        stagedPaths,
                         result);
             } else {
                 result.put(childPath,
-                        buildFileStagingStatus(childPath, stagedPaths, childEdge.getHash()));
+                           buildFileStagingStatus(childPath, stagedPaths, childEdge.getHash()));
             }
         }
-        unstagedPaths.stream()
-                .filter(path -> path.toFile().isFile())
-                .forEach(path -> result.put(path, FileStatus.UNSTAGED));
+        unstagedPaths.forEach(path -> result.put(path, FileStatus.UNSTAGED));
     }
 
     private FileStatus buildFileStagingStatus(@NotNull Path filePath,
@@ -644,5 +639,25 @@ public class MyGitActionHandler {
             path = path.getParent();
         }
         return false;
+    }
+
+    @Nullable
+    Tree.TreeEdge findElementInHeadTree(@NotNull Path path)
+            throws MyGitIllegalStateException, IOException {
+        Tree.TreeEdge result = new Tree.TreeEdge(internalUpdater.getHeadCommit().getRootTreeHash(), "", "");
+        for (Path token : path) {
+            Tree tree = internalUpdater.readTree(result.getHash());
+            result = null;
+            for (Tree.TreeEdge edge : tree.getEdgesToChildren()) {
+                if (edge.getName().equals(token.toString())) {
+                    result = edge;
+                    break;
+                }
+            }
+            if (result == null) {
+                return null;
+            }
+        }
+        return result;
     }
 }

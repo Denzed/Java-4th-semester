@@ -17,12 +17,12 @@ public class MyGitInitTest extends MyGitTest {
     @Test
     public void InitTest() throws Exception {
         MyGitActionHandler.init(folderPath);
+        actionHandler = new MyGitActionHandler(folderPath);
         checkExistenceAndType(myGitPath, true);
         checkExistenceAndType(myGitHEADPath, false);
         checkExistenceAndType(myGitIndexPath, false);
         checkExistenceAndType(myGitObjectsPath, true);
         checkExistenceAndType(myGitBranchesPath, true);
-        MyGitActionHandler actionHandler = new MyGitActionHandler(folderPath);
         Assert.assertEquals(Collections.singletonList(new Branch("master")), actionHandler.listBranches());
     }
 
