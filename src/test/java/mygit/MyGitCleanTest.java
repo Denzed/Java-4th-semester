@@ -9,7 +9,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 /**
  * Test for MyGit clean command
@@ -22,19 +21,17 @@ public class MyGitCleanTest extends MyGitInitialisedTest {
         actionHandler.add(new String[]{stagedFile.toString()});
         final Path unstagedFile = Paths.get(folderPath.toString(), "in2");
         Files.createFile(unstagedFile);
-        final Path directory = Paths.get(folderPath.toString(), "out");
-        Files.createDirectory(directory);
-        final Path fileInDirectory = Paths.get(directory.toString(), "out1");
-        Files.createFile(fileInDirectory);
+        Map<Path,FileStatus> differences = actionHandler.status();
+        Assert.assertEquals(FileStatus.STAGED, differences.get(stagedFile));
+        Assert.assertEquals(FileStatus.UNSTAGED, differences.get(unstagedFile));
+
         actionHandler.clean();
 
-        final Map<Path,FileStatus> differences = actionHandler.status();
+        differences = actionHandler.status();
         Assert.assertEquals(1, differences.size());
         for (Path path : differences.keySet()) {
             Assert.assertEquals(FileStatus.STAGED, differences.get(path));
             Assert.assertEquals("in1", path.getFileName().toString());
         }
-
-        Assert.assertEquals(2, Files.list(folderPath).collect(Collectors.toList()).size());
     }
 }

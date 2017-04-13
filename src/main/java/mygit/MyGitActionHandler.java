@@ -99,9 +99,8 @@ public class MyGitActionHandler {
         }
         performUpdateToIndex(arguments, paths -> paths::remove);
         Set<Path> args = Arrays.stream(arguments)
-                .map(path -> Paths.get(path).relativize(myGitRepositoryRootDirectory))
+                .map(path -> Paths.get(path))
                 .collect(Collectors.toSet());
-        args.removeAll(internalUpdater.readIndexPaths());
         resetStates(internalUpdater.getHeadTree(), myGitRepositoryRootDirectory, args);
         internalUpdater.getLogger().trace("reset -- done");
     }
@@ -269,10 +268,10 @@ public class MyGitActionHandler {
         final String mergedTreeHash = mergeTrees(headTree, otherTree);
         final List<String> parentHashes = Arrays.asList(internalUpdater.getBranchCommitHash(headStatus.getName()),
                                                         internalUpdater.getBranchCommitHash(branchName));
-        final String mergeCommitHash = internalUpdater.writeObjectToFilesystem(
-                new Commit(mergedTreeHash, "Merge commit", parentHashes));
+        final Commit mergeCommit = new Commit(mergedTreeHash, "Merge commit", parentHashes);
+        final String mergeCommitHash = internalUpdater.writeObjectToFilesystem(mergeCommit);
         internalUpdater.writeBranch(headStatus.getName(), mergeCommitHash);
-        checkout(headStatus.getName());
+        internalUpdater.moveFromCommitToCommit(internalUpdater.getHeadCommit(), mergeCommit);
         internalUpdater.getLogger().trace("merge -- done");
     }
 
@@ -288,9 +287,11 @@ public class MyGitActionHandler {
             throws MyGitIllegalStateException, IOException {
         internalUpdater.getLogger().trace("status -- started");
         Map<Path, FileStatus> result = new HashMap<>();
+        Set<Path> indexPaths = internalUpdater.readIndexPaths();
+        indexPaths.forEach(path -> result.put(path, FileStatus.STAGED));
         buildStagingStatus(internalUpdater.getHeadTree(),
                 myGitRepositoryRootDirectory,
-                internalUpdater.readIndexPaths(),
+                indexPaths,
                 result);
         internalUpdater.getLogger().trace("status -- done");
         return result;
@@ -332,7 +333,11 @@ public class MyGitActionHandler {
     public void clean() throws MyGitIllegalStateException, IOException {
         internalUpdater.getLogger().trace("clean -- started");
         cleanTree(internalUpdater.getHeadTree(),
-                myGitRepositoryRootDirectory);
+                  myGitRepositoryRootDirectory,
+                  internalUpdater.readIndexPaths()
+                                 .stream()
+                                 .map(myGitRepositoryRootDirectory::relativize)
+                                 .collect(Collectors.toSet()));
         internalUpdater.getLogger().trace("clean -- done");
     }
 
@@ -374,13 +379,12 @@ public class MyGitActionHandler {
     }
 
     private void cleanTree(@Nullable Tree currentTree,
-                           @NotNull Path pathPrefix)
+                           @NotNull Path pathPrefix,
+                           @NotNull Set<Path> stagedPaths)
             throws IOException, MyGitIllegalStateException {
-        final Set<Path> stagedPaths = internalUpdater.readIndexPaths();
         final List<Path> unstagedPaths = Files.list(pathPrefix)
                 .filter(path -> !isMyGitInternalPath(path))
                 .collect(Collectors.toList());
-        unstagedPaths.removeAll(stagedPaths);
         final List<Tree.TreeEdge> treeEdges = currentTree == null
                 ? new ArrayList<>()
                 : currentTree.getEdgesToChildren();
@@ -389,9 +393,11 @@ public class MyGitActionHandler {
             unstagedPaths.remove(childPath);
             if (childEdge.getType().equals(Tree.TYPE)) {
                 cleanTree(internalUpdater.readTree(childEdge.getHash()),
-                        childPath);
+                          childPath,
+                          stagedPaths);
             }
         }
+        unstagedPaths.removeAll(stagedPaths);
         for (Path path : unstagedPaths) {
             if (Files.isDirectory(path)) {
                 InternalUpdater.deleteDirectoryRecursively(path);
@@ -411,6 +417,7 @@ public class MyGitActionHandler {
                                     @NotNull Set<Path> stagedPaths,
                                     @NotNull Map<Path, FileStatus> result)
             throws IOException, MyGitIllegalStateException {
+        internalUpdater.getLogger().trace("Building stage status for path=" + pathPrefix.toString() + " -- started");
         final List<Path> unstagedPaths = Files.list(pathPrefix)
                 .filter(path -> !isMyGitInternalPath(path))
                 .collect(Collectors.toList());
@@ -427,24 +434,30 @@ public class MyGitActionHandler {
                         stagedPaths,
                         result);
             } else {
-                result.put(childPath,
-                           buildFileStagingStatus(childPath, stagedPaths, childEdge.getHash()));
+                buildFileStagingStatus(childPath, stagedPaths, childEdge.getHash(), result);
             }
         }
         unstagedPaths.forEach(path -> result.put(path, FileStatus.UNSTAGED));
+        internalUpdater.getLogger().trace("Building stage status for path=" + pathPrefix.toString() + " -- done");
     }
 
-    private FileStatus buildFileStagingStatus(@NotNull Path filePath,
+    private void buildFileStagingStatus(@NotNull Path filePath,
                                               @NotNull Set<Path> stagedPaths,
-                                              @NotNull String committedHash)
+                                              @NotNull String committedHash,
+                                              @NotNull Map<Path, FileStatus> result)
             throws IOException, MyGitIllegalStateException {
+        FileStatus fileStatus;
         if (stagedPaths.contains(filePath)) {
-            return FileStatus.STAGED;
-        } else if (filePath.toFile().exists() && filePath.toFile().isFile()
-                && !committedHash.equals(internalUpdater.computeFileHashFromPath(filePath))) {
-            return FileStatus.MODIFIED;
+            fileStatus = FileStatus.STAGED;
+        } else if (!(filePath.toFile().exists() && filePath.toFile().isFile())) {
+            fileStatus = FileStatus.DELETED;
+        } else if (!committedHash.equals(internalUpdater.computeFileHashFromPath(filePath))) {
+            fileStatus = FileStatus.MODIFIED;
+        } else {
+            return;
         }
-        return FileStatus.DELETED;
+        result.put(filePath, fileStatus);
+        internalUpdater.getLogger().trace("Stage status for path=" + filePath.toString() + " -- " + fileStatus.name());
     }
 
     private void performUpdateToIndex(@NotNull String[] arguments,
@@ -456,13 +469,21 @@ public class MyGitActionHandler {
         for (String argument : arguments) {
             internalUpdater.getLogger().trace("checking path " + argument);
             Path path = Paths.get(argument);
-            if (!isMyGitInternalPath(path)) {
+            try {
+                myGitRepositoryRootDirectory.relativize(path);
+            } catch (IllegalArgumentException e) {
                 throw new MyGitIllegalArgumentException("Path '" + argument + "' is located outside MyGit repository");
+            }
+            if (isMyGitInternalPath(path)) {
+                throw new MyGitIllegalArgumentException("Path '" + argument + "' is internal for MyGit repository files");
             }
             if (!Files.exists(path)) {
                 throw new MyGitIllegalArgumentException("Path '" + argument + "' does not exist");
             }
             argsPaths.add(path);
+            if (path.toFile().isDirectory()) {
+                Files.list(path).forEach(argsPaths::add);
+            }
             internalUpdater.getLogger().trace("checking path " + argument + " -- OK");
         }
         internalUpdater.getLogger().trace("updating index -- checking paths -- done");
@@ -520,6 +541,7 @@ public class MyGitActionHandler {
                                @NotNull Path pathPrefix,
                                Set<Path> indexedPaths)
             throws IOException, MyGitIllegalStateException {
+        internalUpdater.getLogger().trace("rebuilding tree at path=" + pathPrefix.toString() + " -- started");
         final List<Path> filePaths = Files.list(pathPrefix)
                 .filter(path -> !isMyGitInternalPath(path))
                 .collect(Collectors.toList());
@@ -535,8 +557,12 @@ public class MyGitActionHandler {
                 newTree.addEdgeToChild(newTreeEdge);
             }
         }
+        internalUpdater.getLogger().trace("indexed paths:");
+        for (Path path : indexedPaths) {
+            internalUpdater.getLogger().trace(path.toString());
+        }
         for (Path path : filePaths) {
-            if (indexedPaths.contains(myGitRepositoryRootDirectory.relativize(path))) {
+            if (indexedPaths.contains(path)) {
                 if (Files.isDirectory(path)) {
                     final String treeHash = rebuildTree(null, path, indexedPaths);
                     newTree.addEdgeToChild(new Tree.TreeEdge(treeHash, path.getFileName().toString(), Tree.TYPE));
@@ -544,8 +570,11 @@ public class MyGitActionHandler {
                     final String blobHash = internalUpdater.writeBlobFromPath(path);
                     newTree.addEdgeToChild(new Tree.TreeEdge(blobHash, path.getFileName().toString(), Blob.TYPE));
                 }
+                internalUpdater.getLogger().trace("added path=" + path);
             }
+            internalUpdater.getLogger().trace("checked path=" + path);
         }
+        internalUpdater.getLogger().trace("rebuilding tree at path=" + pathPrefix.toString() + " -- done");
         return internalUpdater.writeObjectToFilesystem(newTree);
     }
 
@@ -554,40 +583,43 @@ public class MyGitActionHandler {
                                           @NotNull Path path,
                                           @NotNull Set<Path> indexedPaths)
             throws MyGitIllegalStateException, IOException {
+        internalUpdater.getLogger().trace("rebuilding tree edge at path=" + path.toString() + " -- started");
+        Tree.TreeEdge result = null;
         if (Files.exists(path)) {
             switch (child.getType()) {
                 case Tree.TYPE:
                     final Tree childTree = internalUpdater.readTree(child.getHash());
-                    return path.toFile().isDirectory()
+                    result = path.toFile().isDirectory()
                             ? new Tree.TreeEdge(rebuildTree(childTree, path, indexedPaths),
                                                 child.getName(),
                                                 child.getType())
                             : new Tree.TreeEdge(internalUpdater.writeBlobFromPath(path),
                                                 child.getName(),
                                                 Blob.TYPE);
+                    break;
                 case Blob.TYPE:
                     final Blob childBlob = internalUpdater.readBlob(child.getHash());
                     if (path.toFile().isDirectory()) {
-                        return indexedPaths.contains(myGitRepositoryRootDirectory.relativize(path))
+                        result = indexedPaths.contains(myGitRepositoryRootDirectory.relativize(path))
                                 ? new Tree.TreeEdge(rebuildTree(null, path, indexedPaths), child.getName(), Tree.TYPE)
                                 : child;
                     } else {
                         final byte[] committedContent = childBlob.getContents();
                         final byte[] currentContent = Files.readAllBytes(path);
-                        return Arrays.equals(committedContent, currentContent)
+                        result = Arrays.equals(committedContent, currentContent)
                                 ? child
                                 : new Tree.TreeEdge(internalUpdater.writeBlobFromPath(path),
                                                     child.getName(),
                                                     Blob.TYPE);
                     }
+                    break;
                 default:
                     throw new MyGitIllegalStateException("Got unknown type in process of the tree traversal: "
                             + child.getType());
             }
-        } else if (!indexedPaths.contains(myGitRepositoryRootDirectory.relativize(path))) {
-            return child;
         }
-        return null;
+        internalUpdater.getLogger().trace("rebuilding tree edge at path=" + path.toString() + " -- done");
+        return result;
     }
 
     private void buildCommitTree(@NotNull Commit currentCommit, @NotNull TreeSet<Commit> commitTree)
@@ -632,18 +664,18 @@ public class MyGitActionHandler {
     }
 
     private boolean isMyGitInternalPath(@Nullable Path path) {
-        while (path != null) {
-            if (Files.exists(Paths.get(path.toString(), ".mygit"))) {
-                return true;
-            }
-            path = path.getParent();
-        }
-        return false;
+        return myGitRepositoryRootDirectory.equals(path)
+                || pathContainsToken(myGitRepositoryRootDirectory.relativize(path), ".mygit");
+    }
+
+    private boolean pathContainsToken(@Nullable Path path, @NotNull String token) {
+        return path != null && (path.endsWith(token) || pathContainsToken(path.getParent(), token));
     }
 
     @Nullable
     Tree.TreeEdge findElementInHeadTree(@NotNull Path path)
             throws MyGitIllegalStateException, IOException {
+        path = myGitRepositoryRootDirectory.relativize(path);
         Tree.TreeEdge result = new Tree.TreeEdge(internalUpdater.getHeadCommit().getRootTreeHash(), "", "");
         for (Path token : path) {
             Tree tree = internalUpdater.readTree(result.getHash());

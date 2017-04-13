@@ -35,7 +35,7 @@ public class Log4j2ContextBuilder {
                     builder
                             .newComponent("DefaultRolloverStrategy")
                             .addAttribute("max", 3);
-            final Path logsPath = Paths.get(directory.toAbsolutePath().toString(), "logs");
+            final Path logsPath = Paths.get(directory.toAbsolutePath().toString(), ".mygit", "logs");
             final AppenderComponentBuilder appenderBuilder =
                     builder
                             .newAppender("file", "ROLLINGFILE")

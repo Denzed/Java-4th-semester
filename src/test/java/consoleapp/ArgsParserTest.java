@@ -46,8 +46,12 @@ public class ArgsParserTest extends TestWithTemporaryFolder {
     @Test
     public void parseResetTest() throws Exception {
         MyGitActionHandler.init(folderPath);
-        final String[] args = {"reset", folderPath.toString()};
-        parser.parse(args);
+        final Path file = Paths.get(folderPath.toString(), "greeting.txt");
+        Files.createFile(file);
+        final String[] args1 = {"add", file.toString()};
+        parser.parse(args1);
+        final String[] args2 = {"reset", file.toString()};
+        parser.parse(args2);
     }
 
     @Test

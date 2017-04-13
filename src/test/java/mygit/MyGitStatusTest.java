@@ -40,12 +40,11 @@ public class MyGitStatusTest extends MyGitInitialisedTest {
         fileStatusMap = actionHandler.status();
         Assert.assertEquals(1, fileStatusMap.size());
         Assert.assertEquals(FileStatus.DELETED, fileStatusMap.get(input1Path));
-        actionHandler.add(new String[]{input1Path.toString()});
         actionHandler.commit("removed 1");
 
         Files.write(input2Path, new byte[10]);
         fileStatusMap = actionHandler.status();
-        Assert.assertEquals(1, fileStatusMap .size());
+        Assert.assertEquals(1, fileStatusMap.size());
         Assert.assertEquals(FileStatus.MODIFIED, fileStatusMap.get(input2Path));
     }
 }

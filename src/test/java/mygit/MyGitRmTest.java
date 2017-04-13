@@ -33,10 +33,9 @@ public class MyGitRmTest extends MyGitInitialisedTest {
         Files.createFile(fileInDirectory);
         actionHandler.add(new String[]{directory.toString()});
         actionHandler.commit("first");
-        Path relativePath = myGitPath.relativize(fileInDirectory);
-        Assert.assertNotNull(actionHandler.findElementInHeadTree(relativePath));
-        actionHandler.rm(Collections.singletonList(relativePath));
+        Assert.assertNotNull(actionHandler.findElementInHeadTree(fileInDirectory));
+        actionHandler.rm(Collections.singletonList(fileInDirectory));
         actionHandler.commit("second");
-        Assert.assertNull(actionHandler.findElementInHeadTree(relativePath));
+        Assert.assertNull(actionHandler.findElementInHeadTree(fileInDirectory));
     }
 }
