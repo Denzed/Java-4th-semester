@@ -2,6 +2,7 @@ package mygit;
 
 import mygit.exceptions.MyGitEmptyCommitException;
 import mygit.exceptions.MyGitIllegalArgumentException;
+import org.junit.Assert;
 import org.junit.Test;
 import testing.MyGitInitialisedTest;
 
@@ -21,6 +22,9 @@ public class MyGitCommitTest extends MyGitInitialisedTest {
             actionHandler.add(paths);
         }
         actionHandler.commit("added some files");
+        for (Path path : FILE_PATHS) {
+            Assert.assertNotNull(actionHandler.findElementInHeadTree(path));
+        }
     }
 
     @Test(expected = MyGitEmptyCommitException.class)
