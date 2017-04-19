@@ -1,5 +1,5 @@
 ## MyGit is a version control system based on Git
-[![Build Status](https://travis-ci.org/Denzed/Java-4th-semester.svg?branch=VCS+)](https://travis-ci.org/Denzed/Java-4th-semester) [![codecov](https://codecov.io/gh/Denzed/Java-4th-semester/branch/VCS+/graph/badge.svg)](https://codecov.io/gh/Denzed/Java-4th-semester)
+[![Build Status](https://travis-ci.org/Denzed/Java-4th-semester.svg?branch=VCS%2B)](https://travis-ci.org/Denzed/Java-4th-semester) [![codecov](https://codecov.io/gh/Denzed/Java-4th-semester/branch/VCS+/graph/badge.svg)](https://codecov.io/gh/Denzed/Java-4th-semester)
 ### Base objects:
 - Blob --- file contents (represents a file in filesystem)
 - Tree --- hierarchy of versioned files (represents a directory in filesystem)
