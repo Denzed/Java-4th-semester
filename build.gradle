@@ -1,6 +1,7 @@
 version '1.0-SNAPSHOT'
 
 apply plugin: 'java'
+apply plugin: 'application'
 
 sourceCompatibility = JavaVersion.VERSION_1_8
 targetCompatibility = JavaVersion.VERSION_1_8
@@ -22,3 +23,5 @@ test {
         logger.lifecycle("Running test: ${descriptor}")
     }
 }
+
+mainClassName = 'consoleapp.ConsoleApp'
