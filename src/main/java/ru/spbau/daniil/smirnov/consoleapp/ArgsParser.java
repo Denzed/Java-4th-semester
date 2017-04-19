@@ -52,6 +52,13 @@ class ArgsParser {
         this.currentDirectory = currentDirectory;
     }
 
+    /**
+     * Parses command line arguments and executes them if parsed successfully.
+     * @param args command line arguments
+     * @throws InvalidCommandException if the unsupported command is entered or wrong arguments are supplied
+     * @throws MyGitException if an internal error occurs
+     * @throws IOException if filesystem I/O error occurs
+     */
     void parse(@NotNull String[] args)
             throws InvalidCommandException, MyGitException, IOException {
         if (args.length == 0 || args[0].equals(HELP)) {

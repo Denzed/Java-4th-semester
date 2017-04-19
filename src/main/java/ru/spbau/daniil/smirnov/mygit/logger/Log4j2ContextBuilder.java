@@ -10,10 +10,12 @@ import org.jetbrains.annotations.NotNull;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+/**
+ * Class which builds a context for the {@link org.apache.logging.log4j.Logger} associated with {@link ru.spbau.daniil.smirnov.mygit.InternalUpdater}
+ */
 public class Log4j2ContextBuilder {
         /**
          * Generates a context with a single logger and a RollingFile appender.
-         *
          * @param directory log storage directory
          * @return the generated context
          */

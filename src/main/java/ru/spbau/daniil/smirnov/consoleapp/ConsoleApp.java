@@ -7,7 +7,7 @@ import java.nio.file.Paths;
 /**
  * Provides console access to MyGit
  */
-public class ConsoleApp {
+public class    ConsoleApp {
     /**
      * Entrance point to the console application
      * @param args command line arguments
