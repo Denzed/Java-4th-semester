@@ -1,4 +1,4 @@
-package ru.spbau.daniil.smirnov.exceptions;
+package ru.spbau.daniil.smirnov.myftp.exceptions;
 
 import org.jetbrains.annotations.NotNull;
 
