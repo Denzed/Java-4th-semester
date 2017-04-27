@@ -30,7 +30,7 @@ public class ListDirectoryAction extends Action {
 
         private final boolean isDirectory;
 
-        private ListActionResultEntry(@NotNull String name, boolean isDirectory) {
+        public ListActionResultEntry(@NotNull String name, boolean isDirectory) {
             this.name = name;
             this.isDirectory = isDirectory;
         }
@@ -50,6 +50,22 @@ public class ListDirectoryAction extends Action {
          */
         public boolean isDirectory() {
             return isDirectory;
+        }
+
+        /**
+         * A generated method to compare two entries' equality
+         * @param o object to compare with
+         * @return {@code true} if equals, {@code false} if not
+         */
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            ListActionResultEntry entry = (ListActionResultEntry) o;
+
+            return isDirectory() == entry.isDirectory() && getName().equals(entry.getName());
+
         }
     }
 
@@ -81,7 +97,7 @@ public class ListDirectoryAction extends Action {
                     pathToDirectory.toString() + " - path is not absolute");
         }
         File file = pathToDirectory.toFile();
-        if (file.exists() || file.isDirectory()) {
+        if (file.exists() && file.isDirectory()) {
             return Files.list(pathToDirectory)
                         .map(Path::toFile)
                         .collect(Collectors.toList());

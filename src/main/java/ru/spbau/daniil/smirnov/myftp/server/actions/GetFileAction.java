@@ -47,7 +47,7 @@ public class GetFileAction extends Action {
                     pathToFile.toString() + " - path is not absolute");
         }
         File file = pathToFile.toFile();
-        if (file.exists() || file.isFile()) {
+        if (file.exists() && file.isFile()) {
             return Files.readAllBytes(pathToFile);
         }
         return new byte[]{};
@@ -78,9 +78,11 @@ public class GetFileAction extends Action {
                 DataInputStream inputStream = new DataInputStream(byteStream)) {
             int fileSize = inputStream.readInt();
             byte[] fileContents = new byte[fileSize];
-            if (inputStream.read(fileContents) < fileSize) {
+            int readBytes = inputStream.read(fileContents);
+            if (fileSize > 0 && readBytes < fileSize) {
                 throw new MyFTPException("Corrupt response: "
-                        + "file size read from response is greater than the actual file contents size");
+                        + "file size read from response is greater than the actual file contents size --- "
+                        + fileSize + " compared to " + readBytes);
             }
             return fileContents;
         }

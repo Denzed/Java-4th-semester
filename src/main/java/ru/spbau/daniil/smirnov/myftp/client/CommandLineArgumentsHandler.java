@@ -4,7 +4,6 @@ import org.jetbrains.annotations.NotNull;
 import ru.spbau.daniil.smirnov.myftp.exceptions.MyFTPException;
 import ru.spbau.daniil.smirnov.myftp.exceptions.MyFTPIllegalArgumentException;
 import ru.spbau.daniil.smirnov.myftp.exceptions.MyFTPUnsuccessfulOperationException;
-import ru.spbau.daniil.smirnov.myftp.server.ServerCommandLineApp;
 import ru.spbau.daniil.smirnov.myftp.server.actions.ListDirectoryAction;
 
 import java.io.IOException;
@@ -20,13 +19,13 @@ class CommandLineArgumentsHandler {
     private static final String LIST = "list";
 
     @NotNull
+    private final ClientFactory clientFactory;
+
+    @NotNull
     private final PrintStream printStream;
 
-    /**
-     * Constructs CommandLineArgumentsHandler which writes its output to the given {@code printStream}
-     * @param printStream stream to write output into
-     */
-    CommandLineArgumentsHandler(@NotNull PrintStream printStream) {
+    CommandLineArgumentsHandler(@NotNull ClientFactory clientFactory, @NotNull PrintStream printStream) {
+        this.clientFactory = clientFactory;
         this.printStream = printStream;
     }
 
@@ -59,7 +58,7 @@ class CommandLineArgumentsHandler {
 
     private void handleGetCommand(@NotNull String[] arguments) throws IOException, MyFTPException {
         if (arguments.length > 1) {
-            byte[] response = new Client(ServerCommandLineApp.PORT).get(arguments[1]);
+            byte[] response = clientFactory.createClient().get(arguments[1]);
             printStream.write(response);
         } else {
             throw new MyFTPIllegalArgumentException("No file path specified");
@@ -69,7 +68,7 @@ class CommandLineArgumentsHandler {
     private void handleListCommand(@NotNull String[] arguments) throws IOException, MyFTPException {
         if (arguments.length > 1) {
             final List<ListDirectoryAction.ListActionResultEntry> response =
-                    new Client(ServerCommandLineApp.PORT).list(arguments[1]);
+                    clientFactory.createClient().list(arguments[1]);
             if (response == null) {
                 throw new MyFTPUnsuccessfulOperationException("Response is empty");
             }
