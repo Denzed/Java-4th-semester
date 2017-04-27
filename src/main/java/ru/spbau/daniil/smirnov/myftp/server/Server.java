@@ -19,7 +19,7 @@ import java.util.Queue;
 import java.util.Set;
 
 /**
- * Stands for an FTP server which interacts with clients using {@link ServerSocketChannel}
+ * Stands for MyFTP server which interacts with clients using {@link ServerSocketChannel}
  */
 public class Server {
     private final int port;

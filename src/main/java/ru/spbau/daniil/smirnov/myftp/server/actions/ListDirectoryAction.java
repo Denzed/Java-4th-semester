@@ -110,7 +110,7 @@ public class ListDirectoryAction extends Action {
      * @return List of entries {@code (String name, boolean isDirectory)} which represents directory contents
      * @throws IOException if an I/O exception occurs
      */
-    public static List<ListActionResultEntry> fromByte(byte[] response) throws IOException, MyFTPException {
+    public static List<ListActionResultEntry> fromBytes(byte[] response) throws IOException, MyFTPException {
         try (
                 ByteArrayInputStream byteStream = new ByteArrayInputStream(response);
                 DataInputStream inputStream = new DataInputStream(byteStream)) {

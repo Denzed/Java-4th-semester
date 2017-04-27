@@ -7,7 +7,7 @@ import java.util.Scanner;
 /**
  * Command line access to server
  */
-public class CommandLineApp {
+public class ServerCommandLineApp {
     /**
      * Port to bind server on
      */
@@ -18,7 +18,7 @@ public class CommandLineApp {
      * @param args command line arguments
      */
     public static void main(@NotNull String[] args) {
-        CommandLineArgumentsHandler handler = new CommandLineArgumentsHandler(
+        ServerCommandLineArgumentsHandler handler = new ServerCommandLineArgumentsHandler(
                 () -> new Server(PORT),
                 System.out);
         handler.showHelp();

@@ -9,7 +9,7 @@ import java.util.Iterator;
  * Class which handles server commands which are coming as strings from {@link Iterator}
  * and prints the result to {@link PrintStream}.
  */
-class CommandLineArgumentsHandler {
+class ServerCommandLineArgumentsHandler {
     private static final String START = "start";
     private static final String STOP = "stop";
     private static final String EXIT = "exit";
@@ -20,7 +20,7 @@ class CommandLineArgumentsHandler {
     @NotNull
     private final PrintStream printStream;
 
-    CommandLineArgumentsHandler(@NotNull ServerFactory serverFactory, @NotNull PrintStream printStream) {
+    ServerCommandLineArgumentsHandler(@NotNull ServerFactory serverFactory, @NotNull PrintStream printStream) {
         this.serverFactory = serverFactory;
         this.printStream = printStream;
     }

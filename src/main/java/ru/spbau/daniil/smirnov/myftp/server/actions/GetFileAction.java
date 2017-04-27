@@ -72,7 +72,7 @@ public class GetFileAction extends Action {
      * @throws IOException if an I/O exception occurs
      * @throws MyFTPException if the response is corrupt
      */
-    public static byte[] fromByte(byte[] response) throws IOException, MyFTPException {
+    public static byte[] fromBytes(byte[] response) throws IOException, MyFTPException {
         try (
                 ByteArrayInputStream byteStream = new ByteArrayInputStream(response);
                 DataInputStream inputStream = new DataInputStream(byteStream)) {
