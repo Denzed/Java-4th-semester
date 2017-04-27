@@ -15,7 +15,7 @@ import static java.lang.Thread.sleep;
 import static org.junit.Assert.*;
 
 public class ActualWorkTest {
-    private static final int TEST_PORT = 179;
+    private static final int TEST_PORT = 40179;
 
     @Test
     public void testListAndGet() throws Exception {
