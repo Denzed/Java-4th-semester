@@ -1,7 +1,6 @@
 package ru.spbau.daniil.smirnov.myftp.server.actions;
 
 import org.jetbrains.annotations.NotNull;
-import ru.spbau.daniil.smirnov.myftp.exceptions.MyFTPException;
 import ru.spbau.daniil.smirnov.myftp.exceptions.MyFTPIllegalArgumentException;
 
 import java.io.*;
@@ -50,6 +49,14 @@ public class ListDirectoryAction extends Action {
          */
         public boolean isDirectory() {
             return isDirectory;
+        }
+
+        /**
+         * Tells whether the entry is a file (opposite to {@link #isDirectory()} method)
+         * @return {@code true} if so, {@code false} otherwise
+         */
+        public boolean isFile() {
+            return !isDirectory;
         }
 
         /**
@@ -126,7 +133,7 @@ public class ListDirectoryAction extends Action {
      * @return List of entries {@code (String name, boolean isDirectory)} which represents directory contents
      * @throws IOException if an I/O exception occurs
      */
-    public static List<ListActionResultEntry> fromBytes(byte[] response) throws IOException, MyFTPException {
+    public static List<ListActionResultEntry> fromBytes(byte[] response) throws IOException {
         try (
                 ByteArrayInputStream byteStream = new ByteArrayInputStream(response);
                 DataInputStream inputStream = new DataInputStream(byteStream)) {

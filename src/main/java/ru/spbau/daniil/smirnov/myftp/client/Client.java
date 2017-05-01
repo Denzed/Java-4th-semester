@@ -42,7 +42,7 @@ public class Client {
      */
     @Nullable
     public List<ListDirectoryAction.ListActionResultEntry> list(@NotNull String path)
-            throws IOException, MyFTPException {
+            throws IOException {
         byte[] response = sendRequestWithCodeAndArg(ListDirectoryAction.ACTION_CODE, path);
         return response.length == 0 ? null : ListDirectoryAction.fromBytes(response);
     }

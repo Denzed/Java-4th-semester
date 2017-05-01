@@ -1,6 +1,7 @@
-package ru.spbau.daniil.smirnov.myftp.client;
+package ru.spbau.daniil.smirnov.myftp.client.console;
 
 import org.jetbrains.annotations.NotNull;
+import ru.spbau.daniil.smirnov.myftp.client.Client;
 import ru.spbau.daniil.smirnov.myftp.server.ServerCommandLineApp;
 
 /**
