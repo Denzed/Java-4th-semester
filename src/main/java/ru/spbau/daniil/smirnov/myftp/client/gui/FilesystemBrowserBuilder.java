@@ -4,12 +4,15 @@ import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
+import javafx.stage.FileChooser;
 import org.jetbrains.annotations.NotNull;
 import ru.spbau.daniil.smirnov.myftp.client.Client;
 import ru.spbau.daniil.smirnov.myftp.server.ServerCommandLineApp;
 import ru.spbau.daniil.smirnov.myftp.server.actions.ListDirectoryAction;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.List;
 
 class FilesystemBrowserBuilder {
@@ -27,8 +30,20 @@ class FilesystemBrowserBuilder {
         treeView.setOnMouseClicked(mouseEvent -> {
             if(mouseEvent.getClickCount() == 2) {
                 TreeItem<FileWrapper> item = treeView.getSelectionModel().getSelectedItem();
-                // TODO: add "Save to" dialog
-                System.out.println("Selected: " + item.getValue());
+                if (item.isLeaf()) {
+                    File from = item.getValue();
+                    File to = new FileChooser().showSaveDialog(null);
+                    if (to != null) {
+                        try {
+                            Files.write(to.toPath(), client.get(from.getAbsolutePath()));
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            // TODO: add print to status bar
+                        }
+                    } else {
+                        // TODO: add print to status bar that save cancelled
+                    }
+                }
             }
         });
         return treeView;
@@ -72,7 +87,8 @@ class FilesystemBrowserBuilder {
                     if (files != null) {
                         ObservableList<TreeItem<FileWrapper>> children = FXCollections.observableArrayList();
                         for (ListDirectoryAction.ListActionResultEntry entry : files) {
-                            FileWrapper childFile = (FileWrapper) file.toPath().resolve(entry.getName()).toFile();
+                            FileWrapper childFile =
+                                    new FileWrapper(file.toPath().resolve(entry.getName()).toString());
                             children.add(createNode(childFile, entry.isFile()));
                         }
                         return children;

@@ -53,6 +53,7 @@ public class GetFileAction extends Action {
         return new byte[]{};
     }
 
+    @NotNull
     private byte[] toByte(@NotNull byte[] fileContents) throws IOException {
         try (
                 ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
@@ -72,6 +73,7 @@ public class GetFileAction extends Action {
      * @throws IOException if an I/O exception occurs
      * @throws MyFTPException if the response is corrupt
      */
+    @NotNull
     public static byte[] fromBytes(byte[] response) throws IOException, MyFTPException {
         try (
                 ByteArrayInputStream byteStream = new ByteArrayInputStream(response);
