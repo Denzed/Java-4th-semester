@@ -19,7 +19,7 @@ import java.util.Queue;
 import java.util.Set;
 
 /**
- * Stands for MyFTP server which interacts with clients using {@link ServerSocketChannel}
+ * Stands for MyFTP spbau.daniil.smirnov.myftp.server which interacts with clients using {@link ServerSocketChannel}
  */
 public class Server {
     private final int port;
@@ -30,8 +30,8 @@ public class Server {
     private volatile boolean isStopped;
 
     /**
-     * Constructs a server bound to the given port
-     * @param port port to which server should be bound
+     * Constructs a spbau.daniil.smirnov.myftp.server bound to the given port
+     * @param port port to which spbau.daniil.smirnov.myftp.server should be bound
      */
     public Server(int port) {
         this.port = port;
@@ -40,7 +40,7 @@ public class Server {
     }
 
     /**
-     * Starts a server in a separate thread
+     * Starts a spbau.daniil.smirnov.myftp.server in a separate thread
      */
     public void start() {
         final Runnable serverCycleTask = () -> {
@@ -68,14 +68,14 @@ public class Server {
     }
 
     /**
-     * Stops the server on the next iteration of its working cycle
+     * Stops the spbau.daniil.smirnov.myftp.server on the next iteration of its working cycle
      */
     public void stop() {
         isStopped = true;
     }
 
     /**
-     * Gets the port bound to the server
+     * Gets the port bound to the spbau.daniil.smirnov.myftp.server
      * @return bound port
      */
     int getPort() {

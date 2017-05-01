@@ -1,7 +1,8 @@
-package ru.spbau.daniil.smirnov.myftp.client;
+package ru.spbau.daniil.smirnov.myftp.client.console;
 
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
+import ru.spbau.daniil.smirnov.myftp.client.Client;
 
 import java.io.PrintStream;
 import java.util.LinkedList;

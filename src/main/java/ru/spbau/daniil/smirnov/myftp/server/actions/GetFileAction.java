@@ -68,7 +68,7 @@ public class GetFileAction extends Action {
     /**
      * Converts the return byte sequence from {@link #perform()} to file contents
      *
-     * @param response response from server to convert
+     * @param response response from spbau.daniil.smirnov.myftp.server to convert
      * @return actual file contents
      * @throws IOException if an I/O exception occurs
      * @throws MyFTPException if the response is corrupt

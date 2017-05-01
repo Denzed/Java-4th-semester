@@ -16,7 +16,7 @@ public class JavaFXApp extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        primaryStage.setTitle("MyFTP client");
+        primaryStage.setTitle("MyFTP spbau.daniil.smirnov.myftp.client");
         // TODO: add root directory dialog
         root.getChildren().add(
                 new FilesystemBrowserBuilder().buildFileSystemBrowser("/"));

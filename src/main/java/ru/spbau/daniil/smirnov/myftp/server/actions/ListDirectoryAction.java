@@ -129,7 +129,7 @@ public class ListDirectoryAction extends Action {
     /**
      * Converts the return byte sequence from {@link #perform()} to human-readable form
      *
-     * @param response response from server to convert
+     * @param response response from spbau.daniil.smirnov.myftp.server to convert
      * @return List of entries {@code (String name, boolean isDirectory)} which represents directory contents
      * @throws IOException if an I/O exception occurs
      */

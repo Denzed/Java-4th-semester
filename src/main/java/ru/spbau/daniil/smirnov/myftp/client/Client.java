@@ -27,15 +27,15 @@ public class Client {
     private final int port;
 
     /**
-     * Constructs a client to interact with the server on a given port
-     * @param port port of the server
+     * Constructs a spbau.daniil.smirnov.myftp.client to interact with the spbau.daniil.smirnov.myftp.server on a given port
+     * @param port port of the spbau.daniil.smirnov.myftp.server
      */
     public Client(int port) {
         this.port = port;
     }
 
     /**
-     * Sends a request to the server to list the directory at the given path
+     * Sends a request to the spbau.daniil.smirnov.myftp.server to list the directory at the given path
      * @param path path to directory
      * @return files in the directory or {@code null} in case of failure
      * @throws IOException if an I/O error occurs
@@ -48,7 +48,7 @@ public class Client {
     }
 
     /**
-     * Sends a request to the server to get file contents at the given path
+     * Sends a request to the spbau.daniil.smirnov.myftp.server to get file contents at the given path
      * @param path path to file
      * @return file contents if success and an empty {@code byte[]} otherwise
      * @throws IOException if an I/O error occurs
@@ -85,7 +85,7 @@ public class Client {
             channel.connect(new InetSocketAddress(port));
             int selected = selector.select(TIMEOUT);
             if (selected == 0 || !channel.finishConnect()) {
-                throw new SocketTimeoutException("Could not connect to server in " + TIMEOUT + "ms");
+                throw new SocketTimeoutException("Could not connect to spbau.daniil.smirnov.myftp.server in " + TIMEOUT + "ms");
             }
             return channel;
         }
