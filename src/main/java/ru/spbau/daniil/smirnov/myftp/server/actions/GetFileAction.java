@@ -28,10 +28,35 @@ public class GetFileAction extends Action {
     }
 
     /**
+     * Converts the return byte sequence from {@link #perform()} to file contents
+     *
+     * @param response response from {@link Server} to convert
+     * @return actual file contents
+     * @throws IOException if an I/O exception occurs
+     * @throws MyFTPException if the response is corrupt
+     */
+    @NotNull
+    public static byte[] fromBytes(byte[] response) throws IOException, MyFTPException {
+        try (
+                ByteArrayInputStream byteStream = new ByteArrayInputStream(response);
+                DataInputStream inputStream = new DataInputStream(byteStream)) {
+            int fileSize = inputStream.readInt();
+            byte[] fileContents = new byte[fileSize];
+            int readBytes = inputStream.read(fileContents);
+            if (fileSize > 0 && readBytes < fileSize) {
+                throw new MyFTPException("Corrupt response: "
+                        + "file size read from response is greater than the actual file contents size --- "
+                        + fileSize + " compared to " + readBytes);
+            }
+            return fileContents;
+        }
+    }
+
+    /**
      * Performs the file get action and returns the result in the form: <size: Int> <content: Bytes>
      *
      * @return byte array of file contents which is empty if the file is not empty
-     * @throws IOException                   if an I/O exception occurs
+     * @throws IOException if an I/O exception occurs
      * @throws MyFTPIllegalArgumentException if the given argument is invalid
      */
     @NotNull
@@ -63,31 +88,6 @@ public class GetFileAction extends Action {
             outputStream.write(fileContents);
             outputStream.flush();
             return byteStream.toByteArray();
-        }
-    }
-
-    /**
-     * Converts the return byte sequence from {@link #perform()} to file contents
-     *
-     * @param response response from {@link Server} to convert
-     * @return actual file contents
-     * @throws IOException if an I/O exception occurs
-     * @throws MyFTPException if the response is corrupt
-     */
-    @NotNull
-    public static byte[] fromBytes(byte[] response) throws IOException, MyFTPException {
-        try (
-                ByteArrayInputStream byteStream = new ByteArrayInputStream(response);
-                DataInputStream inputStream = new DataInputStream(byteStream)) {
-            int fileSize = inputStream.readInt();
-            byte[] fileContents = new byte[fileSize];
-            int readBytes = inputStream.read(fileContents);
-            if (fileSize > 0 && readBytes < fileSize) {
-                throw new MyFTPException("Corrupt response: "
-                        + "file size read from response is greater than the actual file contents size --- "
-                        + fileSize + " compared to " + readBytes);
-            }
-            return fileContents;
         }
     }
 }

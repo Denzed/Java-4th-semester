@@ -16,10 +16,22 @@ public class JavaFXApp extends Application {
 
     private final Scene scene = new Scene(root);
 
+    /**
+     * Entrance point to the application from the command line
+     * @param args command-line arguments
+     */
     public static void main(String[] args) {
         launch(args);
     }
 
+    static void showError(String message) {
+        new Alert(Alert.AlertType.ERROR, message).showAndWait();
+    }
+
+    /**
+     * Entrance point to the JavaFX application
+     * @param primaryStage primary {@link Stage}
+     */
     @Override
     public void start(Stage primaryStage) {
         primaryStage.setTitle("MyFTP client");
@@ -43,9 +55,5 @@ public class JavaFXApp extends Application {
         dialog.setContentText("Please, enter the root directory:");
         Optional<String> result = dialog.showAndWait();
         return result.orElse(null);
-    }
-
-    static void showError(String message) {
-        new Alert(Alert.AlertType.ERROR, message).showAndWait();
     }
 }

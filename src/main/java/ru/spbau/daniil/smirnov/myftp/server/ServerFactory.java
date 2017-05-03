@@ -6,7 +6,7 @@ package ru.spbau.daniil.smirnov.myftp.server;
 interface ServerFactory {
     /**
      * Creates {@link Server}
-     * @return created spbau.daniil.smirnov.myftp.server
+     * @return created server
      */
     Server createServer();
 }

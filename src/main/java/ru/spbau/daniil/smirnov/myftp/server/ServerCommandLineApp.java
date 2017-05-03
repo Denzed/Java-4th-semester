@@ -5,16 +5,16 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Scanner;
 
 /**
- * Command line access to spbau.daniil.smirnov.myftp.server
+ * Command line access to server
  */
 public class ServerCommandLineApp {
     /**
-     * Port to bind spbau.daniil.smirnov.myftp.server on
+     * Port to bind server on
      */
     public static final int PORT = 40000;
 
     /**
-     * Runs a spbau.daniil.smirnov.myftp.server command line app.
+     * Runs a server command line app.
      * @param args command line arguments
      */
     public static void main(@NotNull String[] args) {

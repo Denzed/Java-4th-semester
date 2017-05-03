@@ -8,7 +8,7 @@ import ru.spbau.daniil.smirnov.myftp.client.Client;
 interface ClientFactory {
     /**
      * Creates {@link Client}
-     * @return created spbau.daniil.smirnov.myftp.client
+     * @return created client
      */
     Client createClient();
 }

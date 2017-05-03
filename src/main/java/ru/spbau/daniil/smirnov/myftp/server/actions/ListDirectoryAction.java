@@ -21,6 +21,79 @@ public class ListDirectoryAction extends Action {
     private final Path pathToDirectory;
 
     /**
+     * Constructs the action instance
+     *
+     * @param pathToDirectory path to the directory contents of which it will try to list
+     */
+    public ListDirectoryAction(@NotNull Path pathToDirectory) {
+        this.pathToDirectory = pathToDirectory;
+    }
+
+    /**
+     * Converts the return byte sequence from {@link #perform()} to human-readable form
+     *
+     * @param response response from server to convert
+     * @return List of entries {@code (String name, boolean isDirectory)} which represents directory contents
+     * @throws IOException if an I/O exception occurs
+     */
+    public static List<ListActionResultEntry> fromBytes(byte[] response) throws IOException {
+        try (
+                ByteArrayInputStream byteStream = new ByteArrayInputStream(response);
+                DataInputStream inputStream = new DataInputStream(byteStream)) {
+            int entryCount = inputStream.readInt();
+            List<ListActionResultEntry> entries = new ArrayList<>(entryCount);
+            while (entryCount > 0) {
+                String name = inputStream.readUTF();
+                boolean isDirectory = inputStream.readBoolean();
+                entries.add(new ListActionResultEntry(name, isDirectory));
+                entryCount--;
+            }
+            return entries;
+        }
+    }
+
+    /**
+     * Performs the action and returns the result
+     *
+     * @return Byte array representing the response in form: <size: Int> (<name: String> <is_dir: Boolean>)*
+     * @throws IOException if an I/O exception occurs
+     * @throws MyFTPIllegalArgumentException if the given argument is invalid
+     */
+    @NotNull
+    @Override
+    public byte[] perform() throws IOException, MyFTPIllegalArgumentException {
+        return toByte(listDirectory());
+    }
+
+    private List<File> listDirectory() throws MyFTPIllegalArgumentException, IOException {
+        if (!pathToDirectory.isAbsolute()) {
+            throw new MyFTPIllegalArgumentException(
+                    pathToDirectory.toString() + " - path is not absolute");
+        }
+        File file = pathToDirectory.toFile();
+        if (file.exists() && file.isDirectory()) {
+            return Files.list(pathToDirectory)
+                        .map(Path::toFile)
+                        .collect(Collectors.toList());
+        }
+        return Collections.emptyList();
+    }
+
+    private byte[] toByte(List<File> files) throws IOException {
+        try (
+                ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+                DataOutputStream outputStream = new DataOutputStream(byteStream)) {
+            outputStream.writeInt(files.size());
+            for (File file : files) {
+                outputStream.writeUTF(file.getName());
+                outputStream.writeBoolean(file.isDirectory());
+            }
+            outputStream.flush();
+            return byteStream.toByteArray();
+        }
+    }
+
+    /**
      * A directory contents entry: a String representing filename and a boolean which tells whether it is a directory
      */
     public static class ListActionResultEntry {
@@ -73,79 +146,6 @@ public class ListDirectoryAction extends Action {
 
             return isDirectory() == entry.isDirectory() && getName().equals(entry.getName());
 
-        }
-    }
-
-    /**
-     * Constructs the action instance
-     *
-     * @param pathToDirectory path to the directory contents of which it will try to list
-     */
-    public ListDirectoryAction(@NotNull Path pathToDirectory) {
-        this.pathToDirectory = pathToDirectory;
-    }
-
-    /**
-     * Performs the action and returns the result
-     *
-     * @return Byte array representing the response in form: <size: Int> (<name: String> <is_dir: Boolean>)*
-     * @throws IOException if an I/O exception occurs
-     * @throws MyFTPIllegalArgumentException if the given argument is invalid
-     */
-    @NotNull
-    @Override
-    public byte[] perform() throws IOException, MyFTPIllegalArgumentException {
-        return toByte(listDirectory());
-    }
-
-    private List<File> listDirectory() throws MyFTPIllegalArgumentException, IOException {
-        if (!pathToDirectory.isAbsolute()) {
-            throw new MyFTPIllegalArgumentException(
-                    pathToDirectory.toString() + " - path is not absolute");
-        }
-        File file = pathToDirectory.toFile();
-        if (file.exists() && file.isDirectory()) {
-            return Files.list(pathToDirectory)
-                        .map(Path::toFile)
-                        .collect(Collectors.toList());
-        }
-        return Collections.emptyList();
-    }
-
-    private byte[] toByte(List<File> files) throws IOException {
-        try (
-                ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
-                DataOutputStream outputStream = new DataOutputStream(byteStream)) {
-            outputStream.writeInt(files.size());
-            for (File file : files) {
-                outputStream.writeUTF(file.getName());
-                outputStream.writeBoolean(file.isDirectory());
-            }
-            outputStream.flush();
-            return byteStream.toByteArray();
-        }
-    }
-
-    /**
-     * Converts the return byte sequence from {@link #perform()} to human-readable form
-     *
-     * @param response response from spbau.daniil.smirnov.myftp.server to convert
-     * @return List of entries {@code (String name, boolean isDirectory)} which represents directory contents
-     * @throws IOException if an I/O exception occurs
-     */
-    public static List<ListActionResultEntry> fromBytes(byte[] response) throws IOException {
-        try (
-                ByteArrayInputStream byteStream = new ByteArrayInputStream(response);
-                DataInputStream inputStream = new DataInputStream(byteStream)) {
-            int entryCount = inputStream.readInt();
-            List<ListActionResultEntry> entries = new ArrayList<>(entryCount);
-            while (entryCount > 0) {
-                String name = inputStream.readUTF();
-                boolean isDirectory = inputStream.readBoolean();
-                entries.add(new ListActionResultEntry(name, isDirectory));
-                entryCount--;
-            }
-            return entries;
         }
     }
 }

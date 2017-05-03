@@ -69,6 +69,10 @@ class FilesystemBrowserBuilder {
 
             private boolean isFirstTimeChildren = true;
 
+            /**
+             * Gets the list of children of the current {@link TreeView} node
+             * @return the list of children of the current {@link TreeView} node
+             */
             @NotNull
             @Override
             public ObservableList<TreeItem<FileWrapper>> getChildren() {
@@ -85,6 +89,10 @@ class FilesystemBrowserBuilder {
                 return super.getChildren();
             }
 
+            /**
+             * Gets whether the current node is a leaf node
+             * @return {@code true} if so, {@code false} otherwise
+             */
             @Override
             public boolean isLeaf() {
                 return isLeaf;

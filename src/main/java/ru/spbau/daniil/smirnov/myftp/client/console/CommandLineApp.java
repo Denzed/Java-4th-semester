@@ -5,11 +5,11 @@ import ru.spbau.daniil.smirnov.myftp.client.Client;
 import ru.spbau.daniil.smirnov.myftp.server.ServerCommandLineApp;
 
 /**
- * Command line access to MyFTP spbau.daniil.smirnov.myftp.client
+ * Command line access to MyFTP client
  */
 public class CommandLineApp {
     /**
-     * Runs the spbau.daniil.smirnov.myftp.client command line app
+     * Runs the client command line app
      * @param arguments command line arguments
      */
     public static void main(@NotNull String[] arguments) {
