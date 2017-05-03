@@ -17,3 +17,4 @@ gradle-app.setting
 gradle/
 settings.gradle
 /src/main/main.iml
+/src/test/test.iml

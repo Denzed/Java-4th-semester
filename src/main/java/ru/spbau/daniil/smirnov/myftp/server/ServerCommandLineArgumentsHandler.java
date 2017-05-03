@@ -6,7 +6,7 @@ import java.io.PrintStream;
 import java.util.Iterator;
 
 /**
- * Class which handles spbau.daniil.smirnov.myftp.server commands coming as strings from {@link Iterator}
+ * Class which handles server commands coming as strings from {@link Iterator}
  * and prints the result to {@link PrintStream}.
  */
 class ServerCommandLineArgumentsHandler {
@@ -34,14 +34,14 @@ class ServerCommandLineArgumentsHandler {
                     if (server == null) {
                         server = serverFactory.createServer();
                         server.start();
-                        printStream.println("Started a spbau.daniil.smirnov.myftp.server on port " + server.getPort());
+                        printStream.println("Started a server on port " + server.getPort());
                     } else {
-                        printStream.println("The spbau.daniil.smirnov.myftp.server has already started");
+                        printStream.println("The server has already started");
                     }
                     break;
                 case STOP:
                     if (server == null) {
-                        printStream.println("No spbau.daniil.smirnov.myftp.server is running");
+                        printStream.println("No server is running");
                     } else {
                         server.stop();
                         server = null;
@@ -63,8 +63,14 @@ class ServerCommandLineArgumentsHandler {
     void showHelp() {
         printStream.println(
                 "Enter:\n" +
-                START + "to start the spbau.daniil.smirnov.myftp.server\n" +
-                STOP + "to stop the spbau.daniil.smirnov.myftp.server\n" +
-                EXIT + "to exit\n");
+                        "\n" +
+                        "to start the server:\n" +
+                        "  " + START + "\n" +
+                        "\n" +
+                        "to stop the server:\n" +
+                        "  " + STOP + "\n" +
+                        "\n" +
+                        "to exit:\n" +
+                        "  " + EXIT + "\n");
     }
 }

@@ -1,9 +1,11 @@
 package ru.spbau.daniil.smirnov.myftp.client.gui;
 
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
+import javafx.scene.input.KeyCode;
 import javafx.stage.FileChooser;
 import org.jetbrains.annotations.NotNull;
 import ru.spbau.daniil.smirnov.myftp.client.Client;
@@ -14,6 +16,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
+
+import static ru.spbau.daniil.smirnov.myftp.client.gui.JavaFXApp.showError;
 
 class FilesystemBrowserBuilder {
     @NotNull
@@ -29,24 +33,33 @@ class FilesystemBrowserBuilder {
         TreeView<FileWrapper> treeView = new TreeView<>(root);
         treeView.setOnMouseClicked(mouseEvent -> {
             if(mouseEvent.getClickCount() == 2) {
-                TreeItem<FileWrapper> item = treeView.getSelectionModel().getSelectedItem();
-                if (item.isLeaf()) {
-                    File from = item.getValue();
-                    File to = new FileChooser().showSaveDialog(null);
-                    if (to != null) {
-                        try {
-                            Files.write(to.toPath(), client.get(from.getAbsolutePath()));
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            // TODO: add print to status bar
-                        }
-                    } else {
-                        // TODO: add print to status bar that save cancelled
-                    }
-                }
+                getAndSaveFile(treeView);
+            }
+        });
+        treeView.setOnKeyPressed(keyEvent -> {
+            if(keyEvent.getCode() == KeyCode.ENTER) {
+                getAndSaveFile(treeView);
             }
         });
         return treeView;
+    }
+
+    private void getAndSaveFile(TreeView<FileWrapper> treeView) {
+        TreeItem<FileWrapper> item = treeView.getSelectionModel().getSelectedItem();
+        if (item != null && item.isLeaf()) {
+            File from = item.getValue();
+            File to = new FileChooser().showSaveDialog(null);
+            if (to != null) {
+                try {
+                    Files.write(to.toPath(), client.get(from.getAbsolutePath()));
+                } catch (Exception e) {
+                    showError("An exception occurred while getting file from server. The action will be cancelled.\n"
+                            + e.getMessage());
+                }
+            } else {
+                showError("No place to save specified. File transfer will be cancelled.");
+            }
+        }
     }
 
     @NotNull
@@ -64,8 +77,9 @@ class FilesystemBrowserBuilder {
                         super.getChildren().setAll(buildChildren(this));
                         isFirstTimeChildren = false;
                     } catch (IOException e) {
-                        // TODO: add status bar message
-                        e.printStackTrace();
+                        Platform.runLater(() -> showError("An exception occurred while listing directory contents."
+                                        + " The action will be cancelled"));
+                        setExpanded(false);
                     }
                 }
                 return super.getChildren();
