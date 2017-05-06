@@ -11,6 +11,11 @@ import java.lang.annotation.Target;
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Test {
-    Class<Throwable> expected = null;
-    String ignore = null;
+    Class<? extends Throwable> expected() default None.class;
+    String ignore() default "";
+
+    class None extends Throwable {
+        private None() {
+        }
+    }
 }
