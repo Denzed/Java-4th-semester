@@ -32,4 +32,4 @@ jacocoTestReport {
     }
 }
 
-mainClassName = 'consoleapp.ConsoleApp'
+mainClassName = 'ru.spbau.daniil.smirnov.consoleapp.ConsoleApp'

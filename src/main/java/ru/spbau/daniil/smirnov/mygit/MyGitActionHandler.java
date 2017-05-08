@@ -41,7 +41,7 @@ public class MyGitActionHandler {
             throw new MyGitIllegalArgumentException("Path given as a parameter should be absolute");
         }
         InternalUpdater internalUpdater = InternalUpdater.init(directory);
-        internalUpdater.getLogger().trace("init -- done in " + directory);
+        internalUpdater.getLogger().trace("init -- done in {}", directory);
     }
 
     /**
@@ -119,7 +119,7 @@ public class MyGitActionHandler {
     public void checkout(@NotNull String revision)
             throws MyGitMissingPrerequisitesException, IOException,
                 MyGitIllegalStateException, MyGitIllegalArgumentException {
-        internalUpdater.getLogger().trace("checkout -- started with revision=" + revision);
+        internalUpdater.getLogger().trace("checkout -- started with revision={}", revision);
         if (foundUncommittedChanges()) {
             throw new MyGitMissingPrerequisitesException("Unstaged changes detected. Checkout cancelled");
         }
@@ -158,7 +158,7 @@ public class MyGitActionHandler {
      */
     public void commit(@NotNull String message)
             throws MyGitIllegalStateException, IOException, MyGitIllegalArgumentException, MyGitEmptyCommitException {
-        internalUpdater.getLogger().trace("commit -- started with message=" + message);
+        internalUpdater.getLogger().trace("commit -- started with message={}", message);
         if (message.isEmpty()) {
             throw new MyGitIllegalArgumentException("Commit message should not be empty");
         }
@@ -188,7 +188,7 @@ public class MyGitActionHandler {
     public void createBranch(@NotNull String branchName)
             throws MyGitIllegalArgumentException, MyGitIllegalStateException,
                 IOException, MyGitMissingPrerequisitesException {
-        internalUpdater.getLogger().trace("branch create -- started with name=" + branchName);
+        internalUpdater.getLogger().trace("branch create -- started with name={}", branchName);
         if (foundUncommittedChanges()) {
             throw new MyGitMissingPrerequisitesException("Unstaged changes detected. Checkout cancelled");
         }
@@ -209,7 +209,7 @@ public class MyGitActionHandler {
      */
     public void deleteBranch(@NotNull String branchName)
             throws MyGitIllegalStateException, IOException, MyGitIllegalArgumentException {
-        internalUpdater.getLogger().trace("branch delete -- started with name=" + branchName);
+        internalUpdater.getLogger().trace("branch delete -- started with name={}", branchName);
         HeadStatus headStatus = getHeadStatus();
         if (headStatus.getType().equals(Branch.TYPE) && headStatus.getName().equals(branchName)) {
             throw new MyGitIllegalArgumentException("Cannot delete currently checked-out branch '" + branchName + "'");
@@ -260,7 +260,7 @@ public class MyGitActionHandler {
     public void merge(@NotNull String branchName)
             throws MyGitMissingPrerequisitesException, IOException,
                 MyGitIllegalStateException, MyGitIllegalArgumentException {
-        internalUpdater.getLogger().trace("merge -- started with branch name=" + branchName);
+        internalUpdater.getLogger().trace("merge -- started with branch name={}", branchName);
         if (foundUncommittedChanges()) {
             throw new MyGitMissingPrerequisitesException("Unstaged changes detected. Merge cancelled");
         }
@@ -428,7 +428,7 @@ public class MyGitActionHandler {
                                     @NotNull Set<Path> stagedPaths,
                                     @NotNull Map<Path, FileStatus> result)
             throws IOException, MyGitIllegalStateException {
-        internalUpdater.getLogger().trace("Building stage status for path=" + pathPrefix.toString() + " -- started");
+        internalUpdater.getLogger().trace("Building stage status for path={} -- started", pathPrefix.toString() + " -- started");
         final List<Path> unstagedPaths = Files.list(pathPrefix)
                 .filter(path -> !isMyGitInternalPath(path))
                 .collect(Collectors.toList());
@@ -449,7 +449,7 @@ public class MyGitActionHandler {
             }
         }
         unstagedPaths.forEach(path -> result.put(path, FileStatus.UNSTAGED));
-        internalUpdater.getLogger().trace("Building stage status for path=" + pathPrefix.toString() + " -- done");
+        internalUpdater.getLogger().trace("Building stage status for path={} -- done", pathPrefix.toString());
     }
 
     private void buildFileStagingStatus(@NotNull Path filePath,
@@ -468,7 +468,7 @@ public class MyGitActionHandler {
             return;
         }
         result.put(filePath, fileStatus);
-        internalUpdater.getLogger().trace("Stage status for path=" + filePath.toString() + " -- " + fileStatus.name());
+        internalUpdater.getLogger().trace("Stage status for path={} -- {}", filePath.toString(), fileStatus.name());
     }
 
     private void performUpdateToIndex(@NotNull String[] arguments,
@@ -479,7 +479,7 @@ public class MyGitActionHandler {
         internalUpdater.getLogger().trace("updating index -- checking paths");
         final List<Path> argsPaths = new ArrayList<>();
         for (String argument : arguments) {
-            internalUpdater.getLogger().trace("checking path " + argument);
+            internalUpdater.getLogger().trace("checking path {}", argument);
             Path path = Paths.get(argument);
             if (!path.isAbsolute()) {
                 path = myGitRepositoryRootDirectory.resolve(path);
@@ -499,7 +499,7 @@ public class MyGitActionHandler {
             if (path.toFile().isDirectory()) {
                 Files.list(path).forEach(argsPaths::add);
             }
-            internalUpdater.getLogger().trace("checking path " + argument + " -- OK");
+            internalUpdater.getLogger().trace("checking path {} -- OK", argument);
         }
         internalUpdater.getLogger().trace("updating index -- checking paths -- done");
         internalUpdater.getLogger().trace("updating index itself");
@@ -557,7 +557,7 @@ public class MyGitActionHandler {
                                @NotNull Path pathPrefix,
                                @NotNull Set<Path> indexedPaths)
             throws IOException, MyGitIllegalStateException {
-        internalUpdater.getLogger().trace("rebuilding tree at path=" + pathPrefix.toString() + " -- started");
+        internalUpdater.getLogger().trace("rebuilding tree at path={} -- started", pathPrefix.toString());
         final List<Path> filePaths = Files.list(pathPrefix)
                 .filter(path -> !isMyGitInternalPath(path))
                 .collect(Collectors.toList());
@@ -586,11 +586,11 @@ public class MyGitActionHandler {
                     final String blobHash = internalUpdater.writeBlobFromPath(path);
                     newTree.addEdgeToChild(new Tree.TreeEdge(blobHash, path.getFileName().toString(), Blob.TYPE));
                 }
-                internalUpdater.getLogger().trace("added path=" + path);
+                internalUpdater.getLogger().trace("added path={}", path);
             }
-            internalUpdater.getLogger().trace("checked path=" + path);
+            internalUpdater.getLogger().trace("checked path={}", path);
         }
-        internalUpdater.getLogger().trace("rebuilding tree at path=" + pathPrefix.toString() + " -- done");
+        internalUpdater.getLogger().trace("rebuilding tree at path={} -- done", pathPrefix.toString());
         return internalUpdater.writeObjectToFilesystem(newTree);
     }
 
@@ -599,7 +599,7 @@ public class MyGitActionHandler {
                                           @NotNull Path path,
                                           @NotNull Set<Path> indexedPaths)
             throws MyGitIllegalStateException, IOException {
-        internalUpdater.getLogger().trace("rebuilding tree edge at path=" + path.toString() + " -- started");
+        internalUpdater.getLogger().trace("rebuilding tree edge at path={} -- started", path.toString());
         Tree.TreeEdge result = null;
         if (Files.exists(path)) {
             switch (child.getType()) {
@@ -634,7 +634,7 @@ public class MyGitActionHandler {
                             + child.getType());
             }
         }
-        internalUpdater.getLogger().trace("rebuilding tree edge at path=" + path.toString() + " -- done");
+        internalUpdater.getLogger().trace("rebuilding tree edge at path={} -- done", path.toString());
         return result;
     }
 

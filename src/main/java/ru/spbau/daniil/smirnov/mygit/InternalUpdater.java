@@ -320,7 +320,7 @@ class InternalUpdater {
     void loadFilesFromTree(@NotNull Tree tree,
                            @NotNull Path path)
             throws MyGitIllegalStateException, IOException {
-        logger.trace("loading files from tree to path=" + path.toString() + "-- started");
+        logger.trace("loading files from tree to path={} -- started", path.toString());
         for (Tree.TreeEdge childEdge : tree.getEdgesToChildren()) {
             final Path childPath = Paths.get(path.toString(), childEdge.getName());
             if (childEdge.getType().equals(Blob.TYPE)) {
@@ -349,7 +349,7 @@ class InternalUpdater {
     private void deleteFilesFromTree(@NotNull Tree tree,
                                      @NotNull Path path)
             throws MyGitIllegalStateException, IOException {
-        logger.trace("deleting files from tree at path=" + path.toString() + " -- started");
+        logger.trace("deleting files from tree at path={} -- started", path.toString());
         for (Tree.TreeEdge childEdge : tree.getEdgesToChildren()) {
             final Path childPath = Paths.get(path.toString(), childEdge.getName());
             final File childFile = childPath.toFile();
