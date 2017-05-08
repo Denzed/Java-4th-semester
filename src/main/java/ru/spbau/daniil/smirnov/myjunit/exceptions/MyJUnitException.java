@@ -8,7 +8,7 @@ public class MyJUnitException extends Exception {
      * Constructs the exception
      * @param message message to show
      */
-    public MyJUnitException(String message) {
+    MyJUnitException(String message) {
         super(message);
     }
 
@@ -16,6 +16,6 @@ public class MyJUnitException extends Exception {
      * Constructs the exception with default message
      */
     public MyJUnitException() {
-        this("MyJunitException -- an error happened while testing");
+        this("MyJunitException -- an error happened inside MyJunit library");
     }
 }

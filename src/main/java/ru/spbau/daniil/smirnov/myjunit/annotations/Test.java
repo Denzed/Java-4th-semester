@@ -15,7 +15,7 @@ public @interface Test {
     String ignore() default "";
 
     class None extends Throwable {
-        private None() {
+        public None() {
         }
     }
 }
