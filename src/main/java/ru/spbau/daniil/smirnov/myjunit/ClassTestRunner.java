@@ -1,4 +1,4 @@
-package ru.spbau.daniil.smirnov.myjunit.testing;
+package ru.spbau.daniil.smirnov.myjunit;
 
 import org.jetbrains.annotations.NotNull;
 import ru.spbau.daniil.smirnov.myjunit.annotations.Test;
@@ -22,9 +22,10 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Runs tests in accordance with annotations from {@link ru.spbau.daniil.smirnov.myjunit.annotations} package
+ * Runs tests in single .class file in accordance with annotations from
+ * {@link ru.spbau.daniil.smirnov.myjunit.annotations} package
  */
-public class TestRunner<T> {
+class ClassTestRunner<T> {
     @NotNull
     private final Class<T> classWithTests;
 
@@ -39,8 +40,8 @@ public class TestRunner<T> {
      * {@link ru.spbau.daniil.smirnov.myjunit.annotations} package
      * @param printStream {@link PrintStream} to write output into
      */
-    public TestRunner(@NotNull Class<T> classWithTests,
-                      @NotNull PrintStream printStream) {
+    ClassTestRunner(@NotNull Class<T> classWithTests,
+                           @NotNull PrintStream printStream) {
         this.classWithTests = classWithTests;
         this.printStream = printStream;
     }
@@ -48,7 +49,7 @@ public class TestRunner<T> {
     /**
      * Runs the tests
      */
-    public void runTests() {
+    void runTests() {
         Map<TestAnnotationType, List<Method>> methodsGrouped = getAndGroupMethods();
         printStream.println(String.format("Running @BeforeClass-annotated methods on class %s", classWithTests));
         try {
