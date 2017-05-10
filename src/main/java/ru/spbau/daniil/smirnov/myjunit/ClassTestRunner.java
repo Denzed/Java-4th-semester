@@ -16,10 +16,8 @@ import java.io.PrintStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.lang.reflect.Modifier;
+import java.util.*;
 
 /**
  * Runs tests in single .class file in accordance with annotations from
@@ -28,11 +26,9 @@ import java.util.Map;
 class ClassTestRunner<T> {
     @NotNull
     private final Class<T> classWithTests;
-
-    private T classInstance;
-
     @NotNull
     private final PrintStream printStream;
+    private T classInstance;
 
     /**
      * Constructs the test runner
@@ -88,7 +84,7 @@ class ClassTestRunner<T> {
         printStream.println(String.format("Finished running tests on class %s", classWithTests));
     }
 
-    private void constructClassToTest()
+    void constructClassToTest()
             throws CannotConstructClassException {
         try {
             classInstance = classWithTests.newInstance();
@@ -97,9 +93,9 @@ class ClassTestRunner<T> {
         }
     }
 
-    private long runTest(@NotNull Method testMethod,
-                         @NotNull List<Method> beforeTest,
-                         @NotNull List<Method> afterTest)
+    long runTest(@NotNull Method testMethod,
+                 @NotNull List<Method> beforeTest,
+                 @NotNull List<Method> afterTest)
             throws TestIgnoredException, TestFailedException, TestUnexpectedException {
         String reason = testMethod.getAnnotation(Test.class).ignore();
         if (!reason.equals("")) {
@@ -131,8 +127,16 @@ class ClassTestRunner<T> {
         return runningTime;
     }
 
+    long runTest(@NotNull Method testMethod)
+            throws TestIgnoredException, TestUnexpectedException, TestFailedException {
+        return runTest(testMethod, Collections.emptyList(), Collections.emptyList());
+    }
+
     private void runMethod(@NotNull Method method)
             throws InvalidMethodException, RunningMethodFailedException {
+        if (Modifier.isStatic(method.getModifiers())) {
+            throw new InvalidMethodException(method, "should not be static");
+        }
         if (method.getParameterCount() != 0) {
             throw new InvalidMethodException(method, "expects parameters");
         }
