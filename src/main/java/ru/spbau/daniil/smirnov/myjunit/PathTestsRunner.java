@@ -5,9 +5,6 @@ import org.jetbrains.annotations.NotNull;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,49 +38,39 @@ public class PathTestsRunner {
      * Runs the tests
      */
     public void runTests() {
+        @NotNull
         List<Path> filesInPath;
         try {
-            PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:*.class");
-            filesInPath = Files.find(pathWithTests,
-                                     Integer.MAX_VALUE,
-                                     (path, attributes) ->
-                                             attributes.isRegularFile() && pathMatcher.matches(path))
-                                .collect(Collectors.toList());
+            filesInPath = findClassFilesInPath(pathWithTests);
         } catch (IOException e) {
             printStream.printf("An error occurred while reading file tree:\n%s\n", e.getMessage());
             return;
         }
-        URL fileURLs[] = filesInPath
-                .stream()
-                .map(path -> {
-                        try {
-                           return path.toUri().toURL();
-                        } catch (MalformedURLException e) {
-                            printStream.printf(
-                                    "Forming URL for path %s failed with message:\n%s\n%s\n",
-                                    path,
-                                    e.getMessage(),
-                                    "So it will be ignored");
-                            return null;
-                        }
-                   })
-                .filter(url -> url != null)
-                .toArray(URL[]::new);
-        ClassLoader classLoader = new URLClassLoader(fileURLs);
         filesInPath
                 .stream()
+                .map(path -> path.relativize(pathWithTests))
                 .map(Path::toFile)
-                .forEach(file -> loadClassAndRunTests(classLoader, file));
+                .forEach(this::loadClassAndRunTests);
     }
 
-    private void loadClassAndRunTests(@NotNull ClassLoader classLoader, @NotNull File file) {
+    @NotNull
+    static List<Path> findClassFilesInPath(@NotNull Path pathWithTests) throws IOException {
+        PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("regex:.*\\.class$");
+        return Files.find(pathWithTests,
+                Integer.MAX_VALUE,
+                (path, attributes) ->
+                        attributes.isRegularFile() && pathMatcher.matches(path))
+                .collect(Collectors.toList());
+    }
+
+    void loadClassAndRunTests(@NotNull File file) {
         @NotNull
         Class<?> clazz;
         try {
-            clazz = classLoader.loadClass(file.getName());
+            clazz = Class.forName(file.toString());
         } catch (ClassNotFoundException e) {
             printStream.printf(
-                    "Loading class from file %s failed with message:\n%s\n%s\n",
+                    "Loading class %s failed with message:\n%s\n%s\n",
                     file,
                     e.getMessage(),
                     "So it will be ignored");

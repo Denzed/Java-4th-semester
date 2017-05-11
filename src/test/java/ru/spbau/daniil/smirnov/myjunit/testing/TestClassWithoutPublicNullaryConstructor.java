@@ -11,6 +11,6 @@ public class TestClassWithoutPublicNullaryConstructor {
     }
 
     public TestClassWithoutPublicNullaryConstructor(int id) {
-        this.id = 1;
+        this.id = id;
     }
 }

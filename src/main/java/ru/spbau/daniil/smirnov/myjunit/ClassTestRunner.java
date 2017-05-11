@@ -26,8 +26,10 @@ import java.util.*;
 class ClassTestRunner<T> {
     @NotNull
     private final Class<T> classWithTests;
+
     @NotNull
     private final PrintStream printStream;
+
     private T classInstance;
 
     /**
@@ -37,7 +39,7 @@ class ClassTestRunner<T> {
      * @param printStream {@link PrintStream} to write output into
      */
     ClassTestRunner(@NotNull Class<T> classWithTests,
-                           @NotNull PrintStream printStream) {
+                    @NotNull PrintStream printStream) {
         this.classWithTests = classWithTests;
         this.printStream = printStream;
     }
@@ -49,7 +51,7 @@ class ClassTestRunner<T> {
         Map<TestAnnotationType, List<Method>> methodsGrouped = getAndGroupMethods();
         printStream.println(String.format("Running @BeforeClass-annotated methods on class %s", classWithTests));
         try {
-            constructClassToTest();
+            classInstance = constructClassToTest();
             for (Method method : methodsGrouped.get(TestAnnotationType.BEFORE_CLASS)) {
                 runMethod(method);
             }
@@ -84,10 +86,10 @@ class ClassTestRunner<T> {
         printStream.println(String.format("Finished running tests on class %s", classWithTests));
     }
 
-    void constructClassToTest()
+    T constructClassToTest()
             throws CannotConstructClassException {
         try {
-            classInstance = classWithTests.newInstance();
+            return classWithTests.newInstance();
         } catch (InstantiationException | IllegalAccessException e) {
             throw new CannotConstructClassException(classWithTests);
         }
@@ -149,8 +151,8 @@ class ClassTestRunner<T> {
         }
     }
 
-    private Map<TestAnnotationType, List<Method>> getAndGroupMethods() {
-        Method methods[] = classWithTests.getMethods();
+    Map<TestAnnotationType, List<Method>> getAndGroupMethods() {
+        Method methods[] = classWithTests.getDeclaredMethods();
         Map<TestAnnotationType,List<Method>> methodsGrouped = new HashMap<>();
         for (TestAnnotationType type : TestAnnotationType.values()) {
             methodsGrouped.put(type, new LinkedList<>());
