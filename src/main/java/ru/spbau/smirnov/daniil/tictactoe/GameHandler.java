@@ -17,7 +17,6 @@ public class GameHandler {
     private Figure currentPlayer;
     private State state;
     private Server server = null;
-    private boolean fieldFull;
 
     GameHandler() {
         field = new Figure[N][N];
@@ -32,8 +31,8 @@ public class GameHandler {
             us = Figure.O;
             state = State.GAME_RUNNING;
         } else {
-            startServer();
             us = Figure.X;
+            startServer();
             state = State.WAITING_FOR_PLAYER;
         }
     }
@@ -68,7 +67,8 @@ public class GameHandler {
 
     private boolean isThreeInARow(int x0, int y0, int dx, int dy) {
         return field[x0][y0] == field[x0 + dx][y0 + dy]
-                && field[x0][y0] == field[x0 + 2 * dx][y0 + 2 * dy];
+                && field[x0][y0] == field[x0 + 2 * dx][y0 + 2 * dy]
+                && field[x0][y0] != Figure.NONE;
     }
 
     private boolean isFieldFull() {
@@ -104,7 +104,6 @@ public class GameHandler {
                 server.stop();
             }
             currentPlayer = (currentPlayer == Figure.O ? Figure.X : Figure.O);
-
         }
     }
 

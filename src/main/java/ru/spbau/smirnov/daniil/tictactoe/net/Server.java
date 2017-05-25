@@ -19,7 +19,7 @@ import java.util.Queue;
 import java.util.Set;
 
 /**
- * Stands for MyFTP server which interacts with clients using {@link ServerSocketChannel}
+ * Stands for server which interacts with clients using {@link ServerSocketChannel}
  */
 public class Server {
     private final int port;
@@ -74,14 +74,6 @@ public class Server {
      */
     public void stop() {
         isStopped = true;
-    }
-
-    /**
-     * Gets the port bound to the server
-     * @return bound port
-     */
-    int getPort() {
-        return port;
     }
 
     private void processReadyChannels(@NotNull Selector selector) {
