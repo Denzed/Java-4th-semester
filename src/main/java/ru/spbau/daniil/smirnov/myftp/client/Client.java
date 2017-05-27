@@ -3,6 +3,7 @@ package ru.spbau.daniil.smirnov.myftp.client;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import ru.spbau.daniil.smirnov.myftp.exceptions.MyFTPException;
+import ru.spbau.daniil.smirnov.myftp.server.Server;
 import ru.spbau.daniil.smirnov.myftp.server.actions.GetFileAction;
 import ru.spbau.daniil.smirnov.myftp.server.actions.ListDirectoryAction;
 import ru.spbau.daniil.smirnov.myftp.utils.ChannelByteReader;
@@ -10,6 +11,7 @@ import ru.spbau.daniil.smirnov.myftp.utils.ChannelByteReader;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketTimeoutException;
 import java.nio.ByteBuffer;
@@ -19,23 +21,30 @@ import java.nio.channels.SocketChannel;
 import java.util.List;
 
 /**
- * Client to interact with an instance of {@link ru.spbau.daniil.smirnov.myftp.server.Server}
+ * Client to interact with an instance of {@link Server}
  */
 public class Client {
     private static final long TIMEOUT = 2000;
 
     private final int port;
+    private final String serverAddress;
 
     /**
-     * Constructs a spbau.daniil.smirnov.myftp.client to interact with the spbau.daniil.smirnov.myftp.server on a given port
-     * @param port port of the spbau.daniil.smirnov.myftp.server
+     * Constructs a client to interact with the server on a given port
+     * @param serverAddress address of the server to connect to
+     * @param port port of the server
      */
-    public Client(int port) {
+    public Client(@NotNull String serverAddress, int port) {
+        this.serverAddress = serverAddress;
         this.port = port;
     }
 
+    public Client(int port) {
+        this("localhost", port);
+    }
+
     /**
-     * Sends a request to the spbau.daniil.smirnov.myftp.server to list the directory at the given path
+     * Sends a request to the server to list the directory at the given path
      * @param path path to directory
      * @return files in the directory or {@code null} in case of failure
      * @throws IOException if an I/O error occurs
@@ -48,7 +57,7 @@ public class Client {
     }
 
     /**
-     * Sends a request to the spbau.daniil.smirnov.myftp.server to get file contents at the given path
+     * Sends a request to the server to get file contents at the given path
      * @param path path to file
      * @return file contents if success and an empty {@code byte[]} otherwise
      * @throws IOException if an I/O error occurs
@@ -82,10 +91,14 @@ public class Client {
         channel.configureBlocking(false);
         try (Selector selector = Selector.open()) {
             channel.register(selector, SelectionKey.OP_CONNECT);
-            channel.connect(new InetSocketAddress(port));
+            @NotNull
+            final InetAddress inetAddress = (serverAddress.equals("localhost")
+                ? InetAddress.getLocalHost()
+                : InetAddress.getByName(serverAddress));
+            channel.connect(new InetSocketAddress(inetAddress, port));
             int selected = selector.select(TIMEOUT);
             if (selected == 0 || !channel.finishConnect()) {
-                throw new SocketTimeoutException("Could not connect to spbau.daniil.smirnov.myftp.server in " + TIMEOUT + "ms");
+                throw new SocketTimeoutException("Could not connect to server in " + TIMEOUT + "ms");
             }
             return channel;
         }

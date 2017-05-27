@@ -22,6 +22,8 @@ import java.util.Set;
  * Stands for MyFTP server which interacts with clients using {@link ServerSocketChannel}
  */
 public class Server {
+    static private final int DELAY = 100;
+
     private final int port;
 
     @NotNull
@@ -43,7 +45,7 @@ public class Server {
      * Starts a server in a separate thread
      */
     public void start() {
-        final Runnable serverCycleTask = () -> {
+        new Thread(() -> {
             try (
                     ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
                     Selector selector = Selector.open()) {
@@ -51,8 +53,14 @@ public class Server {
                 serverSocketChannel.bind(new InetSocketAddress(port));
                 serverSocketChannel.configureBlocking(false);
                 serverSocketChannel.register(selector, SelectionKey.OP_ACCEPT);
-
                 while (!isStopped) {
+                    try {
+                        Thread.sleep(DELAY);
+                    } catch (InterruptedException e) {
+                        System.out.println(
+                                "Someone tried to interrupt while sleeping between cycles. Ignored. Stack trace:");
+                        e.printStackTrace();
+                    }
                     int readyChannelCount = selector.selectNow();
                     if (readyChannelCount != 0) {
                         processReadyChannels(selector);
@@ -63,8 +71,7 @@ public class Server {
                 System.out.println("An exception occurred. Server will be stoppped. Stack trace:");
                 e.printStackTrace();
             }
-        };
-        new Thread(serverCycleTask).start();
+        }).start();
     }
 
     /**

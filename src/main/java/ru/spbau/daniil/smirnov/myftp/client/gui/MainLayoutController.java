@@ -7,7 +7,6 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseEvent;
 import javafx.stage.FileChooser;
-import org.jetbrains.annotations.NotNull;
 import ru.spbau.daniil.smirnov.myftp.client.Client;
 import ru.spbau.daniil.smirnov.myftp.server.ServerCommandLineApp;
 
@@ -20,8 +19,7 @@ import static ru.spbau.daniil.smirnov.myftp.client.gui.JavaFXApp.showError;
  * Class used to control Main layout loaded from MainLayout.fxml
  */
 public class MainLayoutController {
-    @NotNull
-    final private Client client;
+    private Client client;
 
     @FXML
     private TreeView<FileWrapper> fileTreeView;
@@ -31,7 +29,6 @@ public class MainLayoutController {
 
     // Constructs our controller
     public MainLayoutController() {
-        client = new Client(ServerCommandLineApp.PORT);
     }
 
     @FXML
@@ -40,6 +37,7 @@ public class MainLayoutController {
 
     void setJavaFXApp(JavaFXApp javaFXApp) {
         this.javaFXApp = javaFXApp;
+        client = new Client(this.javaFXApp.getServerAddress(), ServerCommandLineApp.PORT);
         fileTreeView.setRoot(
                 new FileBrowserItem(
                         client,
@@ -65,7 +63,9 @@ public class MainLayoutController {
         TreeItem<FileWrapper> item = fileTreeView.getSelectionModel().getSelectedItem();
         if (item != null && item.isLeaf()) {
             File from = item.getValue();
-            File to = new FileChooser().showSaveDialog(null);
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setInitialFileName(from.getName());
+            File to = fileChooser.showSaveDialog(null);
             if (to != null) {
                 try {
                     Files.write(to.toPath(), client.get(from.getAbsolutePath()));

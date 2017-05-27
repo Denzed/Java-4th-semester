@@ -14,7 +14,7 @@ public class CommandLineApp {
      */
     public static void main(@NotNull String[] arguments) {
         final CommandLineArgumentsHandler handler = new CommandLineArgumentsHandler(
-                () -> new Client(ServerCommandLineApp.PORT),
+                (String serverAddress) -> new Client(serverAddress, ServerCommandLineApp.PORT),
                 System.out);
         handler.handle(arguments);
     }

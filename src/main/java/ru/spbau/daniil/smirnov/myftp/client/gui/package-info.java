@@ -1,4 +1,4 @@
 /**
- * Classes used in JavaFX spbau.daniil.smirnov.myftp.client application
+ * Classes used in JavaFX client application
  */
 package ru.spbau.daniil.smirnov.myftp.client.gui;

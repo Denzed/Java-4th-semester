@@ -1,7 +1,6 @@
 version '1.0-SNAPSHOT'
 
 apply plugin: 'java'
-//apply plugin: 'application'
 apply plugin: 'jacoco'
 
 sourceCompatibility = JavaVersion.VERSION_1_8

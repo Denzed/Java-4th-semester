@@ -50,6 +50,9 @@ class CommandLineArgumentsHandler {
                 default:
                     showHelp();
             }
+        } catch (IllegalArgumentException e) {
+            printStream.println(String.format("Illegal arguments:\n%s", e.getMessage()));
+            showHelp();
         } catch (Exception e) {
             printStream.println("Unsuccessful operation:");
             e.printStackTrace(printStream);
@@ -57,27 +60,27 @@ class CommandLineArgumentsHandler {
     }
 
     private void handleGetCommand(@NotNull String[] arguments) throws IOException, MyFTPException {
-        if (arguments.length > 1) {
-            byte[] response = clientFactory.createClient().get(arguments[1]);
+        if (arguments.length > 2) {
+            byte[] response = clientFactory.createClient(arguments[1]).get(arguments[2]);
             printStream.write(response);
         } else {
-            throw new MyFTPIllegalArgumentException("No file path specified");
+            throw new MyFTPIllegalArgumentException("No file path or server address specified");
         }
     }
 
     private void handleListCommand(@NotNull String[] arguments) throws IOException, MyFTPException {
         if (arguments.length > 1) {
             final List<ListDirectoryAction.ListActionResultEntry> response =
-                    clientFactory.createClient().list(arguments[1]);
+                    clientFactory.createClient(arguments[1]).list(arguments[2]);
             if (response == null) {
                 throw new MyFTPUnsuccessfulOperationException("Response is empty");
             }
-            printStream.println("Directory " + arguments[1] + " contents:");
+            printStream.println("Directory " + arguments[2] + " contents:");
             for (ListDirectoryAction.ListActionResultEntry entry : response) {
                 printStream.println((entry.isDirectory() ? "d" : "f") + " " + entry.getName());
             }
         } else {
-            throw new MyFTPIllegalArgumentException("No directory path specified");
+            throw new MyFTPIllegalArgumentException("No directory path or server address specified");
         }
     }
 
@@ -89,9 +92,9 @@ class CommandLineArgumentsHandler {
                         "  " + HELP + "\n" +
                         "\n" +
                         "get file contents:\n" +
-                        "  " + GET + " <file>\n" +
+                        "  " + GET + " <server address> <file>\n" +
                         "\n" +
                         "list directory contents:\n" +
-                        "  " + LIST + "<directory>\n");
+                        "  " + LIST + " <server address> <directory>\n");
     }
 }

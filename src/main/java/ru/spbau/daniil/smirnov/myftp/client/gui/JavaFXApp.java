@@ -4,22 +4,23 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
-import javafx.scene.control.Alert;
-import javafx.scene.control.TextInputDialog;
+import javafx.scene.control.*;
 import javafx.scene.layout.AnchorPane;
+import javafx.scene.layout.GridPane;
 import javafx.stage.Stage;
+import javafx.util.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.util.Optional;
 
 public class JavaFXApp extends Application {
-    private final int minWidth = 320;
-    private final int minHeight = 480;
+    static private final int MIN_WIDTH = 320;
+    static private final int MIN_HEIGHT = 480;
 
     private Stage primaryStage;
     private AnchorPane rootLayout;
+    private String serverAddress;
     private String rootDirectory;
 
     /**
@@ -48,12 +49,14 @@ public class JavaFXApp extends Application {
 
     private void initFileBrowser() {
         try {
-            rootDirectory = askForRootDirectory();
-            if (rootDirectory == null) {
-                showError("No root directory specified. Application will be closed");
+            Pair<String,String> response = askForIPAndRootDirectory();
+            if (response == null) {
+                showError("No required information provided. Application will be closed");
                 Platform.exit();
                 System.exit(0);
             }
+            serverAddress = response.getKey();
+            rootDirectory = response.getValue();
 
             @NotNull
             final FXMLLoader loader = new FXMLLoader();
@@ -68,8 +71,8 @@ public class JavaFXApp extends Application {
             primaryStage.setScene(scene);
             primaryStage.show();
 
-            primaryStage.setMinWidth(minWidth);
-            primaryStage.setMinHeight(minHeight);
+            primaryStage.setMinWidth(MIN_WIDTH);
+            primaryStage.setMinHeight(MIN_HEIGHT);
         } catch (IOException e) {
             showError("Could not load the main layout. Application will be stopped");
             Platform.exit();
@@ -78,17 +81,47 @@ public class JavaFXApp extends Application {
     }
 
     @Nullable
-    private String askForRootDirectory() {
-        TextInputDialog dialog = new TextInputDialog();
-        dialog.setTitle("Root directory");
-        dialog.setHeaderText(null);
-        dialog.setContentText("Please, enter the root directory:");
-        Optional<String> result = dialog.showAndWait();
-        return result.orElse(null);
+    private Pair<String,String> askForIPAndRootDirectory() {
+        Dialog<Pair<String, String>> dialog = new Dialog<>();
+        dialog.setTitle("Server IP and root directory");
+
+        ButtonType submitButtonType = new ButtonType("OK", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(submitButtonType, ButtonType.CANCEL);
+
+        GridPane gridPane = new GridPane();
+        gridPane.setHgap(10);
+        gridPane.setVgap(10);
+
+        TextField IP = new TextField();
+        IP.setText("localhost");
+        TextField rootDirectory = new TextField();
+        rootDirectory.setText("/");
+
+        gridPane.add(new Label("IP:"), 0, 0);
+        gridPane.add(IP, 1, 0);
+        gridPane.add(new Label("Root directory:"), 0, 1);
+        gridPane.add(rootDirectory, 1, 1);
+
+        dialog.getDialogPane().setContent(gridPane);
+
+        Platform.runLater(IP::requestFocus);
+
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == submitButtonType) {
+                return new Pair<>(IP.getText(), rootDirectory.getText());
+            }
+            return null;
+        });
+        return dialog.showAndWait().orElse(null);
     }
 
     @NotNull
     String getRootDirectory() {
         return rootDirectory;
+    }
+
+    @NotNull
+    String getServerAddress() {
+        return serverAddress;
     }
 }

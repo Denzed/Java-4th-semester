@@ -10,5 +10,5 @@ interface ClientFactory {
      * Creates {@link Client}
      * @return created client
      */
-    Client createClient();
+    Client createClient(String serverAddress);
 }
