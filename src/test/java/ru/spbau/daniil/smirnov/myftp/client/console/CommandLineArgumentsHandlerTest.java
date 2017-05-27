@@ -16,8 +16,8 @@ public class CommandLineArgumentsHandlerTest {
     public void handleTest() throws Exception {
         ClientSavingFactory factory = new ClientSavingFactory();
         CommandLineArgumentsHandler handler = new CommandLineArgumentsHandler(factory, mock(PrintStream.class));
-        handler.handle(new String[]{"list", "/Users"});
-        handler.handle(new String[]{"get", "/file"});
+        handler.handle(new String[]{"list", "upyachka.ru", "/Users"});
+        handler.handle(new String[]{"get", "upyachka.ru", "/file"});
 
         assertEquals(2, factory.clients.size());
         verify(factory.clients.get(0), times(1)).list("/Users");
@@ -33,7 +33,7 @@ public class CommandLineArgumentsHandlerTest {
         }
 
         @Override
-        public Client createClient() {
+        public Client createClient(String serverAddress) {
             Client client = mock(Client.class);
             clients.add(client);
             return client;
