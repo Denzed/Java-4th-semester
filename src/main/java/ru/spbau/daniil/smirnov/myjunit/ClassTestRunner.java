@@ -7,17 +7,17 @@ import ru.spbau.daniil.smirnov.myjunit.exceptions.CannotConstructClassException;
 import ru.spbau.daniil.smirnov.myjunit.exceptions.InvalidMethodException;
 import ru.spbau.daniil.smirnov.myjunit.exceptions.MyJUnitException;
 import ru.spbau.daniil.smirnov.myjunit.exceptions.RunningMethodFailedException;
-import ru.spbau.daniil.smirnov.myjunit.exceptions.test.TestException;
-import ru.spbau.daniil.smirnov.myjunit.exceptions.test.TestFailedException;
-import ru.spbau.daniil.smirnov.myjunit.exceptions.test.TestIgnoredException;
-import ru.spbau.daniil.smirnov.myjunit.exceptions.test.TestUnexpectedException;
+import ru.spbau.daniil.smirnov.myjunit.test.*;
 
 import java.io.PrintStream;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
-import java.util.*;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Runs tests in single .class file in accordance with annotations from
@@ -27,31 +27,27 @@ class ClassTestRunner<T> {
     @NotNull
     private final Class<T> classWithTests;
 
-    @NotNull
-    private final PrintStream printStream;
-
     private T classInstance;
 
     /**
      * Constructs the test runner
      * @param classWithTests class which contains tests defined by annotations from
      * {@link ru.spbau.daniil.smirnov.myjunit.annotations} package
-     * @param printStream {@link PrintStream} to write output into
      */
-    ClassTestRunner(@NotNull Class<T> classWithTests,
-                    @NotNull PrintStream printStream) {
+    ClassTestRunner(@NotNull Class<T> classWithTests) {
         this.classWithTests = classWithTests;
-        this.printStream = printStream;
     }
 
     /**
      * Runs the tests
      */
-    void runTests() {
+    void runTests(@NotNull PrintStream printStream) {
         Map<TestAnnotationType, List<Method>> methodsGrouped = getAndGroupMethods();
         printStream.println(String.format("Running @BeforeClass-annotated methods on class %s", classWithTests));
         try {
-            classInstance = constructClassToTest();
+            if (classInstance == null) {
+                classInstance = constructClassToTest();
+            }
             for (Method method : methodsGrouped.get(TestAnnotationType.BEFORE_CLASS)) {
                 runMethod(method);
             }
@@ -65,15 +61,11 @@ class ClassTestRunner<T> {
         }
         printStream.println(String.format("Running tests on class %s", classWithTests));
         for (Method method : methodsGrouped.get(TestAnnotationType.TEST)) {
-            try {
-                long runningTime = runTest(
-                        method,
-                        methodsGrouped.get(TestAnnotationType.BEFORE),
-                        methodsGrouped.get(TestAnnotationType.AFTER));
-                printStream.println(String.format("Test %s succeeded in %d milliseconds", method, runningTime));
-            } catch (TestException e) {
-                printStream.println(e.getMessage());
-            }
+            TestRunResult testRunResult = runTest(
+                    method,
+                    methodsGrouped.get(TestAnnotationType.BEFORE),
+                    methodsGrouped.get(TestAnnotationType.AFTER));
+            printStream.println(testRunResult);
         }
         printStream.println(String.format("Running @AfterClass-annotated methods on class %s", classWithTests));
         for (Method method : methodsGrouped.get(TestAnnotationType.AFTER_CLASS)) {
@@ -86,7 +78,7 @@ class ClassTestRunner<T> {
         printStream.println(String.format("Finished running tests on class %s", classWithTests));
     }
 
-    T constructClassToTest()
+    private T constructClassToTest()
             throws CannotConstructClassException {
         try {
             return classWithTests.newInstance();
@@ -95,13 +87,12 @@ class ClassTestRunner<T> {
         }
     }
 
-    long runTest(@NotNull Method testMethod,
-                 @NotNull List<Method> beforeTest,
-                 @NotNull List<Method> afterTest)
-            throws TestIgnoredException, TestFailedException, TestUnexpectedException {
+    private TestRunResult runTest(@NotNull Method testMethod,
+                          @NotNull List<Method> beforeTest,
+                          @NotNull List<Method> afterTest) {
         String reason = testMethod.getAnnotation(Test.class).ignore();
         if (!reason.equals("")) {
-            throw new TestIgnoredException(testMethod, reason);
+            return new TestIgnored(testMethod, reason);
         }
         long runningTime;
         try {
@@ -109,14 +100,16 @@ class ClassTestRunner<T> {
                 runMethod(method);
             }
             long start = System.currentTimeMillis();
+            Class<? extends Throwable> expected = testMethod.getAnnotation(Test.class).expected();
             try {
                 runMethod(testMethod);
-                throw new RunningMethodFailedException(testMethod, new Test.None());
+                if (!expected.equals(Test.None.class)) {
+                    return new TestFinishedWithoutExpectedException(testMethod, expected);
+                }
             } catch (RunningMethodFailedException e) {
-                Class<? extends Throwable> expected = testMethod.getAnnotation(Test.class).expected();
                 Throwable actual = e.getUnderlying();
                 if (!expected.isInstance(actual)) {
-                    throw new TestUnexpectedException(testMethod, expected, actual.getClass());
+                    return new TestFailedWithUnexpectedException(testMethod, expected, actual.getClass());
                 }
             }
             runningTime = System.currentTimeMillis() - start;
@@ -124,14 +117,9 @@ class ClassTestRunner<T> {
                 runMethod(method);
             }
         } catch (MyJUnitException e) {
-            throw new TestFailedException(testMethod, e);
+            return new TestFailedWithInternalException(testMethod, e);
         }
-        return runningTime;
-    }
-
-    long runTest(@NotNull Method testMethod)
-            throws TestIgnoredException, TestUnexpectedException, TestFailedException {
-        return runTest(testMethod, Collections.emptyList(), Collections.emptyList());
+        return new TestSucceeded(testMethod, runningTime);
     }
 
     private void runMethod(@NotNull Method method)
@@ -151,7 +139,7 @@ class ClassTestRunner<T> {
         }
     }
 
-    Map<TestAnnotationType, List<Method>> getAndGroupMethods() {
+    private Map<TestAnnotationType, List<Method>> getAndGroupMethods() {
         Method methods[] = classWithTests.getDeclaredMethods();
         Map<TestAnnotationType,List<Method>> methodsGrouped = new HashMap<>();
         for (TestAnnotationType type : TestAnnotationType.values()) {

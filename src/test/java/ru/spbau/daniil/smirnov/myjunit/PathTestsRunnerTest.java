@@ -16,6 +16,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 
+import static ru.spbau.daniil.smirnov.myjunit.PrivateMethodGetter.getMethodAndMakeItPublic;
+
 /**
  * Test set for {@link PathTestsRunner}
  */
@@ -44,12 +46,16 @@ public class PathTestsRunnerTest {
     public void findClassFilesInPathTest() throws Exception {
         Assert.assertEquals(
                 Collections.singletonList(testFile.toPath()),
-                PathTestsRunner.findClassFilesInPath(testFile.toPath()));
+                getMethodAndMakeItPublic(PathTestsRunner.class,
+                                         "findClassFilesInPath",
+                                         Path.class).invoke(null, testFile.toPath()));
     }
 
     @Test
     public void loadClassAndRunTestsTest() throws Exception {
-        pathTestsRunner.loadClassAndRunTests(testFile);
+        getMethodAndMakeItPublic(PathTestsRunner.class,
+                "loadClassAndRunTests",
+                File.class).invoke(pathTestsRunner, testFile);
         Mockito.verify(printStream, Mockito.never()).printf(
                 Mockito.eq("Loading class from file %s failed with message:\n%s\n%s\n"),
                 Mockito.anyVararg());
@@ -62,8 +68,5 @@ public class PathTestsRunnerTest {
         Mockito.verify(printStream, Mockito.never()).printf(
                 Mockito.eq("An error occurred while reading file tree:\n%s\n"),
                 Mockito.anyString());
-        Path testPath = testFile.toPath();
-        Mockito.verify(pathTestsRunner).loadClassAndRunTests(
-                Mockito.eq(testPath.relativize(testPath).toFile()));
     }
 }

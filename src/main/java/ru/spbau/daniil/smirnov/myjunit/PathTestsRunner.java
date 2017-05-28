@@ -54,7 +54,7 @@ public class PathTestsRunner {
     }
 
     @NotNull
-    static List<Path> findClassFilesInPath(@NotNull Path pathWithTests) throws IOException {
+    static private List<Path> findClassFilesInPath(@NotNull Path pathWithTests) throws IOException {
         PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("regex:.*\\.class$");
         return Files.find(pathWithTests,
                 Integer.MAX_VALUE,
@@ -63,7 +63,7 @@ public class PathTestsRunner {
                 .collect(Collectors.toList());
     }
 
-    void loadClassAndRunTests(@NotNull File file) {
+    private void loadClassAndRunTests(@NotNull File file) {
         @NotNull
         Class<?> clazz;
         try {
@@ -76,6 +76,6 @@ public class PathTestsRunner {
                     "So it will be ignored");
             return;
         }
-        new ClassTestRunner<>(clazz, printStream).runTests();
+        new ClassTestRunner<>(clazz).runTests(printStream);
     }
 }

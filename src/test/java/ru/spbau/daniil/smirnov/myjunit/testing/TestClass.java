@@ -24,8 +24,12 @@ public class TestClass {
     }
 
     @Test(expected = IOException.class)
-    public void testExpectedException() throws IOException {
+    public void testExpectedExceptionThrown() throws IOException {
         throw new IOException();
+    }
+
+    @Test(expected = IOException.class)
+    public void testExpectedExceptionNotThrown() {
     }
 
     @Test

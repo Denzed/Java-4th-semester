@@ -30,7 +30,6 @@ class CommandLineArgumentsHandler {
             return;
         }
         handleRunTests(arguments[0]);
-
     }
 
     private void handleRunTests(@NotNull String pathString) {
